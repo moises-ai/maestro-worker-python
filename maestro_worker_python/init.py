@@ -16,6 +16,8 @@ def main():
     for file in files:
         if file == "models":
             continue
+        if file == "__init__.py":
+            continue
         shutil.copy(f"{dir}/worker_example/{file}", args.get("folder"))
     
     os.mkdir(f"{args.get('folder')}/models")

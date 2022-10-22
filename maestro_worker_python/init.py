@@ -18,6 +18,8 @@ def main():
             continue
         if file == "__init__.py":
             continue
+        if file == "__pycache__":
+            continue
         shutil.copy(f"{dir}/worker_example/{file}", args.get("folder"))
     
     os.mkdir(f"{args.get('folder')}/models")

@@ -14,7 +14,7 @@ pip install git+ssh://git@github.com/moises-ai/maestro-worker-python.git@1.0.0
 ```
 
 ## Maestro init
-Run the init script to scaffold a maestro worker in the current directory. To create in a different one, use `--directory`
+Run the init script to scaffold a maestro worker in the current directory. To create in a different one, use the flag `--directory`
 
 ```bash
 maestro-init

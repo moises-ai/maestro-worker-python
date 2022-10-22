@@ -13,7 +13,14 @@ def main():
 
     args = parser.parse_args().__dict__
 
-    files = os.listdir("{dir}/worker_example")
-    shutil.copytree(files, args.get("folder"))
+    files = os.listdir(f"{dir}/worker-example/")
+    print(files)
+    for file in files:
+        if file == "models":
+            continue
+        shutil.copy(f"{dir}/worker-example/{file}", args.get("folder"))
+    
+    os.mkdir(f"{args.get('folder')}/models")
+    shutil.copy(f"{dir}/worker-example/models/model.th", f"{args.get('folder')}/models/model.th")
 
 

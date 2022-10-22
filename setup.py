@@ -6,11 +6,11 @@ setup(
     name="maestro_worker_python",
     py_modules=["maestro_worker_python"],
     version="1.0.14",
-    description="Utility to run workers on Maestro",
+    description="Utility to run workers on Moises/Maestro",
     readme="README.md",
     python_requires=">=3.8",
     author="Moises.ai",
-    url="https://github.com/moisesai/maestro-worker-utils",
+    url="https://github.com/moises-ai/maestro-worker-python",
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
     install_requires=[

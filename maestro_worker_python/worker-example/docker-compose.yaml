@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  app:
+    build: .
+    command: moises-server --worker /worker/worker.py --base_path /worker-example --port 8000 --reload
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"
+    volumes:
+      - ./:/worker/

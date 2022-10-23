@@ -18,5 +18,5 @@ def main():
     print(f"Running maestro server with {str(args)}")
     os.environ["MODEL_PATH"] = args.get("worker")
     os.environ["BASE_PATH"] = args.get("base_path")
-    uvicorn.run("maestro_worker_utils.serve:app", host='0.0.0.0', port=args.get(
+    uvicorn.run("maestro_worker_python.serve:app", host='0.0.0.0', port=args.get(
         "port"), reload=args.get("reload"), workers=1)

@@ -10,7 +10,7 @@ pip install git+ssh://git@github.com/moises-ai/maestro-worker-python.git
 
 To install a specific version:
 ```
-pip install git+ssh://git@github.com/moises-ai/maestro-worker-python.git@1.0.11
+pip install git+ssh://git@github.com/moises-ai/maestro-worker-python.git@1.0.12
 ```
 
 ## Maestro init
@@ -54,9 +54,15 @@ curl --request POST --url http://localhost:8000/worker-example/inference  --head
     --data '{"input_1": "Hello"}'
 ```
 
-## Develop this module
+## Using Docker Compose
 
-### Test the module locally
+### Build image
 ```bash
-python3 setup.py develop
+docker-compose build
+```
+
+### Run the server
+
+```bash
+docker-compose run --service-ports worker
 ```

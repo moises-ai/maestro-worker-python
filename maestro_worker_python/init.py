@@ -12,17 +12,13 @@ def main():
     args = parser.parse_args().__dict__
 
     dir = pathlib.Path(__file__).parent.resolve()
-    files = os.listdir(f"{dir}/worker_example")
+    files = os.listdir(f"{dir}/data")
     for file in files:
         if file == "models":
             continue
-        if file == "__init__.py":
-            continue
-        if file == "__pycache__":
-            continue
-        shutil.copy(f"{dir}/worker_example/{file}", args.get("folder"))
+        shutil.copy(f"{dir}/data/{file}", args.get("folder"))
     
     os.mkdir(f"{args.get('folder')}/models")
-    shutil.copy(f"{dir}/worker_example/models/model.th", f"{args.get('folder')}/models/model.th")
+    shutil.copy(f"{dir}/data/models/model.th", f"{args.get('folder')}/models/model.th")
 
 

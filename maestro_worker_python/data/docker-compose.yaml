@@ -2,7 +2,7 @@ version: "3.9"
 services:
   worker:
     build: .
-    command: maestro-server --worker /worker/worker.py --base_path /worker-example --port 8000 --reload
+    command: maestro-server --worker /worker/worker.py --base_path /worker-whisper-large --port 8000 --reload True
     ports:
       - "8000:8000"
     expose:

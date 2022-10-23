@@ -2,7 +2,6 @@ import uvicorn
 import argparse
 import os
 
-
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -18,5 +17,5 @@ def main():
     print(f"Running maestro server with {str(args)}")
     os.environ["MODEL_PATH"] = args.get("worker")
     os.environ["BASE_PATH"] = args.get("base_path")
-    uvicorn.run("maestro_worker_python.serve:app", host='0.0.0.0', port=args.get(
-        "port"), reload=args.get("reload"), workers=1)
+    uvicorn.run("maestro_worker_python.serve:app", host='0.0.0.0', port=int(args.get(
+        "port")), reload=args.get("reload"))

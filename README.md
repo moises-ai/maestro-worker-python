@@ -3,14 +3,14 @@
 This module scaffolds the creation of a standard inference worker to run on the Moises/Maestro infra-structure.
 
 ## Installation
-To install latest:
+To install the main branch:
 ```
 pip install git+https://github.com/moises-ai/maestro-worker-python.git
 ```
 
-To install a specific version:
+To install a version (recommended):
 ```
-pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.14
+pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.15
 ```
 
 ## Maestro init

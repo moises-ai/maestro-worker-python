@@ -16,9 +16,9 @@ class MoisesWorker(object):
     def inference(self, input_data):
         try:
             input_example = input_data.get("input_1", "Hello")
-            time_start = time()
+            time_start = time.time()
             result = self.model(input_example)
-            time_end = time()
+            time_end = time.time()
             # Send response with the result and the time it took to process the request
             return {"result": result, "stats": {"duration_seconds": time_end - time_start}}
         except Exception as e:

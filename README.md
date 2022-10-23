@@ -23,7 +23,7 @@ maestro-init
 ```
 
 This will create example files to run a worker:
-  - A model folder to include your model
+  - A `models` folder to include your models
   - A `docker-compose.yaml`file
   - A `DockerFile`
   - A `requirements.txt` file including this package

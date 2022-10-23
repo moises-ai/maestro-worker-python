@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 setup(
     name="maestro_worker_python",
     py_modules=["maestro_worker_python", "maestro_worker_python.worker_example"],
-    version="1.0.8",
+    version="1.0.9",
     description="Utility to run workers on Moises/Maestro",
     readme="README.md",
     python_requires=">=3.8",
@@ -14,7 +14,7 @@ setup(
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
     package_data={
-      'maestro_worker_python': ['data/*.*', 'data/models/*.*'],
+      'maestro_worker_python': ['data/*.*', 'data/models/*.*', 'data/Dockerfile'],
    },
     install_requires=[
         str(r)

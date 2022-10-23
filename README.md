@@ -22,7 +22,7 @@ To create in a different one, use the flag `--folder`
 maestro-init
 ```
 
-This will create example files to run a worker:
+This will create a starter Maestro worker project, including:
   - A `models` folder to include your models
   - A `docker-compose.yaml`file
   - A `DockerFile`

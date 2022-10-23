@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 setup(
     name="maestro_worker_python",
     py_modules=["maestro_worker_python", "maestro_worker_python.worker_example"],
-    version="1.0.5",
+    version="1.0.6",
     description="Utility to run workers on Moises/Maestro",
     readme="README.md",
     python_requires=">=3.8",
@@ -13,6 +13,9 @@ setup(
     url="https://github.com/moises-ai/maestro-worker-python",
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
+    package_data={
+      'maestro_worker_python': ['data/*.*', 'data/models/*.*'],
+   },
     install_requires=[
         str(r)
         for r in pkg_resources.parse_requirements(

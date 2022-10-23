@@ -2,6 +2,7 @@ import shutil
 import argparse
 import os
 import pathlib
+from xml.etree.ElementInclude import include
 
 def main():
     parser = argparse.ArgumentParser(
@@ -15,6 +16,8 @@ def main():
     files = os.listdir(f"{dir}/data")
     for file in files:
         if file == "models":
+            continue
+        if file =="__pycache__":
             continue
         shutil.copy(f"{dir}/data/{file}", args.get("folder"))
     

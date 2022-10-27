@@ -13,6 +13,16 @@ def main():
     args = parser.parse_args().__dict__
 
     dir = pathlib.Path(__file__).parent.resolve()
+    print("""\
+___  ___                _             
+|  \/  |               | |            
+| .  . | __ _  ___  ___| |_ _ __ ___  
+| |\/| |/ _` |/ _ \/ __| __| '__/ _ \ 
+| |  | | (_| |  __/\__ \ |_| | | (_) |
+\_|  |_/\__,_|\___||___/\__|_|  \___/ 
+                                                                          
+""")
+    print(f"Initializing Maestro worker on folder: {args.get('folder')}")
     shutil.copy(f"{dir}/data/worker.py", f"{args.get('folder')}/worker.py")
     shutil.copy(f"{dir}/data/requirements.txt", f"{args.get('folder')}/requirements.txt")
     shutil.copy(f"{dir}/data/docker-compose.yaml", f"{args.get('folder')}/docker-compose.yaml")

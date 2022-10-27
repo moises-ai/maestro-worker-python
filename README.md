@@ -10,7 +10,7 @@ pip install git+https://github.com/moises-ai/maestro-worker-python.git
 
 To install a version (recommended):
 ```
-pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.18
+pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.19
 ```
 
 ## Maestro init
@@ -65,4 +65,11 @@ docker-compose build
 
 ```bash
 docker-compose run --service-ports worker
+```
+
+### Developing this package
+Run in development mode:
+
+```bash
+python3 setup.py develop
 ```

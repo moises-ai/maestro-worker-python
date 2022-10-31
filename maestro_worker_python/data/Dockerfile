@@ -7,4 +7,4 @@ WORKDIR /worker
 COPY ./requirements.txt /worker/requirements.txt
 RUN pip3 install -r requirements.txt
 COPY ./ /worker
-ENTRYPOINT maestro-server --worker /worker/worker.py --base_path /worker-example --port 8000
+ENTRYPOINT maestro-server --worker /worker/worker.py --port 8000

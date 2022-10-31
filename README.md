@@ -10,7 +10,7 @@ pip install git+https://github.com/moises-ai/maestro-worker-python.git
 
 To install a version (recommended):
 ```
-pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.22
+pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.23
 ```
 
 ## Maestro init

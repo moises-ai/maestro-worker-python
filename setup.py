@@ -6,7 +6,7 @@ setup(
     name="maestro_worker_python",
     py_modules=["maestro_worker_python",
                 "maestro_worker_python.worker_example"],
-    version="1.0.22",
+    version="1.0.23",
     description="Utility to run workers on Moises/Maestro",
     readme="README.md",
     python_requires=">=3.8",

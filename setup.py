@@ -9,7 +9,7 @@ setup(
     version="1.0.23",
     description="Utility to run workers on Moises/Maestro",
     readme="README.md",
-    python_requires=">=3.8",
+    python_requires=">=3.7",
     author="Moises.ai",
     url="https://github.com/moises-ai/maestro-worker-python",
     license="MIT",

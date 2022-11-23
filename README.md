@@ -10,7 +10,7 @@ pip install git+https://github.com/moises-ai/maestro-worker-python.git
 
 To install a version (recommended):
 ```
-pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.23
+pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.24
 ```
 
 ## Maestro init
@@ -81,6 +81,12 @@ files_to_convert = []
 files_to_convert.append(FileToConvert(input_file_path="input.mp3", output_file_path="output.wav", file_format="wav", max_duration=1200))
 files_to_convert.append(FileToConvert(input_file_path="input.mp3", output_file_path="output.m4a", file_format="m4a", max_duration=1200))
 convert_files(files_to_convert)
+```
+
+### Get file duration in seconds
+```python
+from maestro_worker_python.get_duration import get_duration
+get_duration('./myfile.mp3')
 ```
 
 ## Using Docker Compose

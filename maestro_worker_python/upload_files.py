@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import List
 import requests
 import logging
-logging.basicConfig(level=logging.INFO)
 
 
 @dataclass

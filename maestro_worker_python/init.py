@@ -2,6 +2,7 @@ import shutil
 import argparse
 import os
 import pathlib
+import logging
 from xml.etree.ElementInclude import include
 
 def main():
@@ -22,7 +23,7 @@ ___  ___                _
 \_|  |_/\__,_|\___||___/\__|_|  \___/ 
                                                                           
 """)
-    print(f"Initializing Maestro worker on folder: {args.get('folder')}")
+    logging.info(f"Initializing Maestro worker on folder: {args.get('folder')}")
     shutil.copy(f"{dir}/data/worker.py", f"{args.get('folder')}/worker.py")
     shutil.copy(f"{dir}/data/requirements.txt", f"{args.get('folder')}/requirements.txt")
     shutil.copy(f"{dir}/data/docker-compose.yaml", f"{args.get('folder')}/docker-compose.yaml")

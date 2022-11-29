@@ -1,6 +1,8 @@
 import uvicorn
 import argparse
 import os
+import logging
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -14,7 +16,29 @@ def main():
                         help="Reload the server on code changes")
 
     args = parser.parse_args().__dict__
-    print(f"Running maestro server with {str(args)}")
+    logging.info(f"Running maestro server with {str(args)}")
     os.environ["MODEL_PATH"] = args.get("worker")
-    uvicorn.run("maestro_worker_python.serve:app", host='0.0.0.0', port=int(args.get(
-        "port")), reload=args.get("reload"))
+
+    log_level = os.environ.get('LOG_LEVEL', 'INFO').upper()
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'default_handler': {
+                'class': 'logging.StreamHandler',
+                'level': log_level,
+            },
+        },
+        'loggers': {
+            '': {
+                '#handlers': ['default_handler'],
+            },
+            'root': {
+                '#handlers': ['default_handler'],
+            }
+        }
+    }
+    uvicorn.run(
+        "maestro_worker_python.serve:app", host='0.0.0.0', port=int(args.get("port")), reload=args.get("reload"),
+        log_level=log_level.lower(), log_config=logging_config,
+    )

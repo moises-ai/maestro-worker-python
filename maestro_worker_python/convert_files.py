@@ -5,7 +5,6 @@ from typing import List
 import requests
 import logging
 from subprocess import check_call
-logging.basicConfig(level=logging.INFO)
 
 
 @dataclass

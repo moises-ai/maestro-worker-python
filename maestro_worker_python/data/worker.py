@@ -9,9 +9,9 @@ def your_model(input):
 
 class MoisesWorker(object):
     def __init__(self):
-        print("Loading model...")
+        logging.info("Loading model...")
         self.model = your_model
-        print("Model loaded")
+        logging.info("Model loaded")
 
     def inference(self, input_data):
         try:

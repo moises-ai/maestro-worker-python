@@ -1,7 +1,6 @@
 
 import logging
 from subprocess import check_output
-logging.basicConfig(level=logging.INFO)
 
 
 def get_duration(local_file_path: str) -> int:

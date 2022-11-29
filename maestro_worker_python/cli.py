@@ -1,4 +1,5 @@
 from importlib.machinery import SourceFileLoader
+import logging
 import sys
 
 def main():
@@ -10,6 +11,6 @@ def main():
             key, value = arg[2:].split("=",1)
             params[key] = value
 
-    print("Running with", params)
+    logging.info("Running with", params)
     data = model.inference(params)
-    print(data)
+    logging.info(data)

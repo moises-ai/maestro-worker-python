@@ -6,19 +6,19 @@ import logging
 import json_logging
 from starlette.concurrency import run_in_threadpool
 from importlib.machinery import SourceFileLoader
+from .config import settings
 
-
-MODEL_PATH = os.environ.get("MODEL_PATH", "./worker.py")
 
 app = FastAPI()
 
-logging.basicConfig(level=os.environ.get('LOG_LEVEL', 'INFO').upper())
+logging.basicConfig(level=settings.log_level.upper())
 
-json_logging.init_fastapi(enable_json=True)
-json_logging.init_request_instrument(app)
-json_logging.config_root_logger()
+if settings.enable_json_logging:
+    json_logging.init_fastapi(enable_json=True)
+    json_logging.init_request_instrument(app)
+    json_logging.config_root_logger()
 
-worker = SourceFileLoader("worker",MODEL_PATH).load_module()
+worker = SourceFileLoader("worker", settings.model_path).load_module()
 model = worker.MoisesWorker()
 
 

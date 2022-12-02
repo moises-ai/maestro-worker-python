@@ -1,12 +1,18 @@
-from fastapi import FastAPI, Request, Response
 import os
 import socket
 import datetime
 import logging
 import json_logging
+import traceback
+from typing import Union
+from fastapi import FastAPI, Request, Response
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from importlib.machinery import SourceFileLoader
+
 from .config import settings
+from .response import ValidationError, WorkerResponse
 
 
 app = FastAPI()
@@ -22,23 +28,38 @@ worker = SourceFileLoader("worker", settings.model_path).load_module()
 model = worker.MoisesWorker()
 
 
-@app.post("/inference")
-async def inference(request: Request, response: Response):
+@app.exception_handler(500)
+async def internal_exception_handler(request: Request, exc: Exception):
+    tb = ''.join(traceback.format_exception(None, exc, exc.__traceback__))
+    return JSONResponse(status_code=500, content=jsonable_encoder({"error":  tb}))
+
+
+@app.exception_handler(ValidationError)
+async def validation_error_handler(request: Request, exc: ValidationError):
+    return JSONResponse(status_code=200, content=jsonable_encoder({"error":  exc.reason}))
+
+
+@app.post("/inference", response_model=WorkerResponse)
+async def inference(request: Request):
     params = await request.json()
     return await run_in_threadpool(model.inference, input_data=params)
+
 
 @app.get("/")
 async def index(request: Request):
     return {"hostname": socket.gethostname(), "ok": True, "date": datetime.datetime.now()}
 
+
 @app.get("/health")
 async def health(request: Request):
     return {"ok": True}
+
 
 @app.on_event("shutdown")
 def shutdown_event():
     print("Shutting down, bye bye")
     os.remove("/tmp/http_ready")
+
 
 @app.on_event("startup")
 def startup_event():

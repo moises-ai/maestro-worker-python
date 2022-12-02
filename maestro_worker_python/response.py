@@ -2,7 +2,7 @@ from typing import Dict, Optional
 from pydantic import BaseModel
 
 class WorkerResponse(BaseModel):
-    billable_seconds: Optional[float]
+    billable_seconds: Optional[int] = ...
     stats: Dict[str, float]
     result: Dict
 

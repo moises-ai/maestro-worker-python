@@ -1,9 +1,11 @@
 import os
+import signal
 import socket
 import datetime
 import logging
 import json_logging
 import traceback
+import asyncio
 from typing import Union
 from fastapi import FastAPI, Request, Response
 from fastapi.encoders import jsonable_encoder
@@ -27,11 +29,23 @@ if settings.enable_json_logging:
 worker = SourceFileLoader("worker", settings.model_path).load_module()
 model = worker.MoisesWorker()
 
+error_counter = 0
+lock = asyncio.Lock()
+
 
 @app.exception_handler(500)
 async def internal_exception_handler(request: Request, exc: Exception):
+    global error_counter
     tb = ''.join(traceback.format_exception(None, exc, exc.__traceback__))
-    return JSONResponse(status_code=500, content=jsonable_encoder({"error":  tb}))
+    try:
+        return JSONResponse(status_code=500, content=jsonable_encoder({"error":  tb}))
+    finally:
+        logging.error(f'killme error count: {error_counter}')
+        if error_counter > 2:
+            os.kill(os.getpid(), signal.SIGINT)
+
+        async with lock:
+            error_counter += 1
 
 
 @app.exception_handler(ValidationError)
@@ -41,8 +55,12 @@ async def validation_error_handler(request: Request, exc: ValidationError):
 
 @app.post("/inference", response_model=WorkerResponse)
 async def inference(request: Request):
+    global error_counter
     params = await request.json()
-    return await run_in_threadpool(model.inference, input_data=params)
+    result = await run_in_threadpool(model.inference, input_data=params)
+    async with lock:
+        error_counter = 0
+    return result
 
 
 @app.get("/")

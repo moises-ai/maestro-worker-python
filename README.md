@@ -10,7 +10,7 @@ pip install git+https://github.com/moises-ai/maestro-worker-python.git
 
 To install a version (recommended):
 ```
-pip install git+https://github.com/moises-ai/maestro-worker-python.git@1.0.24
+pip install git+https://github.com/moises-ai/maestro-worker-python.git@2.0.1
 ```
 
 ## Maestro init
@@ -103,8 +103,19 @@ docker-compose run --service-ports worker
 ```
 
 ### Developing this package
+
+Install [poetry](https://python-poetry.org/docs/#installing-with-the-official-installer)
+
+
 Run in development mode:
 
 ```bash
-python3 setup.py develop
+poetry install
+poetry run maestro-init
+```
+
+To bump the package version:
+
+```
+poetry version (major|minor|patch)
 ```

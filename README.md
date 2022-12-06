@@ -116,6 +116,12 @@ poetry run maestro-init
 
 To bump the package version:
 
-```
+```bash
 poetry version (major|minor|patch)
+```
+
+Running tests:
+
+```bash
+poetry run python -m pytest
 ```

@@ -40,7 +40,6 @@ async def internal_exception_handler(request: Request, exc: Exception):
     try:
         return JSONResponse(status_code=500, content=jsonable_encoder({"error":  tb}))
     finally:
-        logging.error(f'killme error count: {error_counter}')
         if error_counter > 2:
             os.kill(os.getpid(), signal.SIGINT)
 

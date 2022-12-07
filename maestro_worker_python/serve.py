@@ -50,7 +50,7 @@ async def internal_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(ValidationError)
 async def validation_error_handler(request: Request, exc: ValidationError):
-    return JSONResponse(status_code=200, content=jsonable_encoder({"error":  exc.reason}))
+    return JSONResponse(status_code=400, content=jsonable_encoder({"error":  exc.reason}))
 
 
 @app.post("/inference", response_model=WorkerResponse)

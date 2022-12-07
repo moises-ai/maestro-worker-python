@@ -4,6 +4,7 @@ import concurrent.futures
 from dataclasses import dataclass
 from typing import List
 from subprocess import check_call
+from .response import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,24 @@ def _run_subprocess(command):
     try:
         process = subprocess.run(command, shell=True, capture_output=True, check=True)
     except subprocess.CalledProcessError as exc:
+        if "Invalid data found when processing input" in exc.stderr.decode():
+            logger.warning(
+                f"Could not convert file because of invalid data",
+                extra={'props': {'stderr': exc.stderr.decode(), 'stdout': exc.stdout.decode()}}
+            )
+            raise ValidationError(
+                f"Could not convert file because of invalid data: {exc.stderr.decode()}"
+            ) from exc
+
+        if "Output file #0 does not contain any stream" in exc.stderr.decode():
+            logger.warning(
+                f"Could not convert file because it has no audio data",
+                extra={'props': {'stderr': exc.stderr.decode(), 'stdout': exc.stdout.decode()}}
+            )
+            raise ValidationError(
+                f"Could not convert file because it has no audio data: {exc.stderr.decode()}"
+            ) from exc
+
         logger.error(
             f"Fatal error during conversion",
             extra={'props': {'stderr': exc.stderr.decode(), 'stdout': exc.stdout.decode()}}

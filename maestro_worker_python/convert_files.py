@@ -1,10 +1,11 @@
-
-import threading
+import logging
+import subprocess
+import concurrent.futures
 from dataclasses import dataclass
 from typing import List
-import requests
-import logging
 from subprocess import check_call
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -16,41 +17,43 @@ class FileToConvert:
 
 
 def convert_files(convert_files: List[FileToConvert]):
-    logging.info(f"Converting {len(convert_files)} files")
-    did_raise_exception = threading.Event()
-    threads_conversion = []
+    logger.info(f"Converting {len(convert_files)} files")
 
-    for convert_file in convert_files:
-        target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
-        t = threading.Thread(target=target_function, args=(
-            convert_file.input_file_path, convert_file.output_file_path, convert_file.max_duration, did_raise_exception))
-        threads_conversion.append(t)
-        t.start()
+    futures = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for convert_file in convert_files:
+            target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
+            futures.append(
+                executor.submit(target_function, convert_file.input_file_path, convert_file.output_file_path, convert_file.max_duration)
+            )
 
-    for t in threads_conversion:
-        t.join()
+        for future in futures:
+            future.result()
 
-    if did_raise_exception.is_set():
-        raise Exception("Error during file conversion")
-    logging.info(f"Finished converting {len(convert_files)} files")
+    logger.info(f"Finished converting {len(convert_files)} files")
 
 
-def _convert_to_wav(input_file_path, output_file_path, max_duration, did_raise_exception):
+def _convert_to_wav(input_file_path, output_file_path, max_duration):
+    _run_subprocess(f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -ar 44100 {output_file_path}")
+
+
+def _convert_to_m4a(input_file_path, output_file_path, max_duration):
+    _run_subprocess(f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -c:a aac -b:a 192k -ar 44100 -movflags +faststart {output_file_path}")
+
+
+def _run_subprocess(command):
     try:
-        check_call(
-            f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -ar 44100 {output_file_path}", shell=True)
-    except Exception as ve:
-        logging.exception(ve)
-        did_raise_exception.set()
-        raise ve
-
-
-def _convert_to_m4a(input_file_path, output_file_path, max_duration, did_raise_exception):
-    try:
-        check_call(
-            f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -c:a aac -b:a 192k -ar 44100 -movflags +faststart {output_file_path}", shell=True)
-        return output_file_path
-    except Exception as ve:
-        logging.exception(ve)
-        did_raise_exception.set()
-        raise ve
+        process = subprocess.run(command, shell=True, capture_output=True, check=True)
+    except subprocess.CalledProcessError as exc:
+        logger.error(
+            f"Fatal error during conversion",
+            extra={'props': {'stderr': exc.stderr.decode(), 'stdout': exc.stdout.decode()}}
+        )
+        raise exc
+    else:
+        if process.stderr:
+            logger.warning(
+                f"Non-falal error during conversion",
+                extra={'props': {'stderr': process.stderr.decode(), 'stdout': process.stdout.decode()}}
+            )
+        logger.info(f"Conversion output: {process.stdout.decode()}")

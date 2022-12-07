@@ -16,7 +16,7 @@ def invalid_audio_file(tmp_path_factory):
 
 
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
-def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format):
+def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format, caplog):
     with pytest.raises(subprocess.CalledProcessError) as exc:
         convert_files(
             [FileToConvert(
@@ -25,6 +25,9 @@ def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format):
                 file_format=file_format,
             )]
         )
+
+    assert caplog.records[0].levelname == "ERROR"
+    assert caplog.records[0].message == "Fatal error during conversion"
 
 
 def test_should_convert_valid_audio_file():
@@ -36,7 +39,7 @@ def test_should_convert_valid_audio_file():
             file_format="wav",
         )]
     )
-    assert _get_hash(input_file) == _get_hash(output_file)
+    assert _get_hash(input_file_path) == _get_hash(output_file_path)
     Path(output_file_path).unlink(missing_ok=True)
 
 

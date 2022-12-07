@@ -6,6 +6,7 @@ authors = ["Moises.ai"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "maestro_worker_python"}]
+exclude = ["tests/**/*"]
 
 [tool.poetry.dependencies]
 python = "^3.7"

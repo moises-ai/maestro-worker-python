@@ -9,6 +9,11 @@ from .response import ValidationError
 logger = logging.getLogger(__name__)
 
 
+class FileConversionError(Exception):
+    def __init__(self, message):
+        self.message = message
+
+
 @dataclass
 class FileToConvert:
     input_file_path: str
@@ -46,33 +51,27 @@ def _run_subprocess(command):
     try:
         process = subprocess.run(command, shell=True, capture_output=True, check=True)
     except subprocess.CalledProcessError as exc:
-        if "Invalid data found when processing input" in exc.stderr.decode():
+        invalid_file_errors = [
+            "Invalid data found when processing input",
+            "Output file #0 does not contain any stream",
+            "Invalid argument"
+        ]
+        if any(error in exc.stderr.decode() for error in invalid_file_errors):
             logger.warning(
-                f"Could not convert file because of invalid data",
-                extra={'props': {'stderr': exc.stderr.decode(), 'stdout': exc.stdout.decode()}}
+               "Could not convert because the file is invalid",
+                extra={"props": {"stderr": exc.stderr.decode(), "stdout": exc.stdout.decode()}}
             )
             raise ValidationError(
-                f"Could not convert file because of invalid data: {exc.stderr.decode()}"
+                f"Could not convert because the file is invalid, ffmpeg stderr: {exc.stderr.decode()}"
             ) from exc
 
-        if "Output file #0 does not contain any stream" in exc.stderr.decode():
-            logger.warning(
-                f"Could not convert file because it has no audio data",
-                extra={'props': {'stderr': exc.stderr.decode(), 'stdout': exc.stdout.decode()}}
-            )
-            raise ValidationError(
-                f"Could not convert file because it has no audio data: {exc.stderr.decode()}"
-            ) from exc
-
-        logger.error(
-            f"Fatal error during conversion",
-            extra={'props': {'stderr': exc.stderr.decode(), 'stdout': exc.stdout.decode()}}
-        )
-        raise exc
+        raise FileConversionError(
+            f"Fatal error during conversion, ffmpeg stderr: {exc.stderr.decode()}"
+        ) from exc
     else:
         if process.stderr:
             logger.warning(
-                f"Non-falal error during conversion",
-                extra={'props': {'stderr': process.stderr.decode(), 'stdout': process.stdout.decode()}}
+                "Non-falal error during conversion",
+                extra={"props": {"stderr": process.stderr.decode(), "stdout": process.stdout.decode()}}
             )
         logger.info(f"Conversion output: {process.stdout.decode()}")

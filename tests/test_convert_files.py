@@ -2,7 +2,7 @@ import pytest
 import hashlib
 import subprocess
 from pathlib import Path
-from maestro_worker_python.convert_files import convert_files, FileToConvert
+from maestro_worker_python.convert_files import convert_files, FileToConvert, FileConversionError
 from maestro_worker_python.response import ValidationError
 
 
@@ -16,9 +16,16 @@ def invalid_audio_file(tmp_path_factory):
     return fn
 
 
+@pytest.fixture(scope="session")
+def corrupt_audio_file(tmp_path_factory):
+    fn = tmp_path_factory.mktemp("data") / "corrupt_audio.mp3"
+    fn.write_bytes(b"ID3")
+    return fn
+
+
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
-def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format, caplog):
-    with pytest.raises(subprocess.CalledProcessError) as exc:
+def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format):
+    with pytest.raises(FileConversionError) as exc:
         convert_files(
             [FileToConvert(
                 input_file_path=TEST_PATH / "foobar.mp3",
@@ -27,12 +34,9 @@ def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format, c
             )]
         )
 
-    assert caplog.records[0].levelname == "ERROR"
-    assert caplog.records[0].message == "Fatal error during conversion"
-
 
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
-def test_should_raise_validation_error_if_audio_file_is_invalid(invalid_audio_file, file_format, caplog):
+def test_should_raise_validation_error_if_audio_file_is_invalid(invalid_audio_file, file_format):
     with pytest.raises(ValidationError) as exc:
         convert_files(
             [FileToConvert(
@@ -42,9 +46,21 @@ def test_should_raise_validation_error_if_audio_file_is_invalid(invalid_audio_fi
             )]
         )
 
-    assert "Could not convert file because of invalid data" in str(exc.value)
-    #assert caplog.records[0].levelname == "WARNING"
-    #assert caplog.records[0].message == "foobar"
+    assert "Invalid data" in str(exc.value)
+
+
+@pytest.mark.parametrize("file_format", ["m4a", "wav"])
+def test_should_raise_validation_error_if_audio_file_is_corrupt(corrupt_audio_file, file_format):
+    with pytest.raises(ValidationError) as exc:
+        convert_files(
+            [FileToConvert(
+                input_file_path=corrupt_audio_file,
+                output_file_path=f"{corrupt_audio_file}.wav",
+                file_format=file_format
+            )]
+        )
+
+    assert "Invalid argument" in str(exc.value)
 
 
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
@@ -59,7 +75,7 @@ def test_should_raise_validation_error_if_source_has_no_audio(file_format, caplo
             )]
         )
 
-    assert "Could not convert file because it has no audio data" in str(exc.value)
+    assert "does not contain any strea" in str(exc.value)
 
 
 def test_should_convert_valid_audio_file():

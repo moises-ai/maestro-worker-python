@@ -53,6 +53,37 @@ Send a request to the server inference endpoint:
 curl --request POST --url http://localhost:8000/worker-example/inference  --header 'Content-Type: application/json' \
     --data '{"input_1": "Hello"}'
 ```
+### Upload/Download server for development purposes
+In order to avoid using signedurls for uploading/download files, you can use the `maestro-upload-server` command. This will start a server in the default `9090` port that will upload/download files in the local `./uploads` folder.
+
+Examples:
+
+```bash
+maestro-upload-server --port=9090
+```
+
+After server is running, you can upload files to it:
+
+```bash
+curl http://localhost:9090/upload-file/your_file_name
+```
+
+Then retrieve it:
+
+```bash
+curl http://localhost:9090/get-file/your_file_name
+```
+
+You can clean the files using:
+
+```bash
+curl http://localhost:9090/clean
+```
+
+You can also list files using:
+```bash
+curl http://localhost:9090/list-files
+```
 
 ## Worker Utils
 
@@ -107,11 +138,16 @@ docker-compose run --service-ports worker
 Install [poetry](https://python-poetry.org/docs/#installing-with-the-official-installer)
 
 
-Run in development mode:
+You can run it in development mode:
 
 ```bash
 poetry install
 poetry run maestro-init
+```
+
+If you get a keyring error (ubuntu), you may need to run the following:
+```bash
+export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
 ```
 
 To bump the package version:

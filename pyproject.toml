@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "maestro-worker-python"
-version = "2.2.2"
+version = "2.2.3"
 description = "Utility to run workers on Moises/Maestro"
 authors = ["Moises.ai"]
 license = "MIT"
@@ -28,3 +28,5 @@ build-backend = "poetry.core.masonry.api"
 maestro-server = "maestro_worker_python.server:main"
 maestro-cli = "maestro_worker_python.cli:main"
 maestro-init = "maestro_worker_python.init:main"
+maestro-upload-server = "maestro_worker_python.run_upload_server:main"
+

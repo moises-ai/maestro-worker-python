@@ -41,10 +41,10 @@ maestro-cli ./worker.py --input_1=Hello
 
 ### Using `maestro-server`:
 
-Run the maestro server with the path to your worker and the base path you would like it to run. To see all options, use `maestro-server --help`
+Run the maestro server with the path to your worker. To see all options, use `maestro-server --help`
 
 ```bash
-maestro-server --worker=./worker.py --base_path=/worker-example
+maestro-server --worker=./worker.py
 ```
 
 Send a request to the server inference endpoint:

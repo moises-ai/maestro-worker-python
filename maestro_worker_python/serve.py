@@ -6,6 +6,7 @@ import logging
 import json_logging
 import traceback
 import asyncio
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -15,6 +16,10 @@ from importlib.machinery import SourceFileLoader
 from .config import settings
 from .response import ValidationError, WorkerResponse
 
+sentry_sdk.init(
+    dsn=settings.sentry_dsn,
+    traces_sample_rate=settings.sentry_traces_sample_rate,
+)
 
 app = FastAPI()
 

@@ -3,7 +3,7 @@ import argparse
 import os
 import pathlib
 import logging
-from xml.etree.ElementInclude import include
+
 
 def main():
     parser = argparse.ArgumentParser(

@@ -6,8 +6,7 @@ import logging
 import json_logging
 import traceback
 import asyncio
-from typing import Union
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool

@@ -3,7 +3,6 @@ import subprocess
 import concurrent.futures
 from dataclasses import dataclass
 from typing import List
-from subprocess import check_call
 from .response import ValidationError
 
 logger = logging.getLogger(__name__)

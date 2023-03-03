@@ -1,6 +1,5 @@
 import logging
 from time import time
-import traceback
 from maestro_worker_python.response import WorkerResponse, ValidationError
 
 

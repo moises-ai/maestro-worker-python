@@ -19,6 +19,7 @@ from .response import ValidationError, WorkerResponse
 sentry_sdk.init(
     dsn=settings.sentry_dsn,
     traces_sample_rate=settings.sentry_traces_sample_rate,
+    environment=settings.environment,
 )
 
 app = FastAPI()

@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     model_path: str = "./worker.py"
     sentry_dsn: str = None
     sentry_traces_sample_rate: float = 1.0
+    environment: str = 'production'
 
 
 settings = Settings()

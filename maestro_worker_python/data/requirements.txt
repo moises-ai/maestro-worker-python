@@ -1,1 +1,1 @@
-git+https://github.com/moises-ai/maestro-worker-python.git@2.3.0
+git+https://github.com/moises-ai/maestro-worker-python.git@2.4.0

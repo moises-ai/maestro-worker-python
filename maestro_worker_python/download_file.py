@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import tempfile
 
@@ -6,8 +8,7 @@ from urllib.request import urlretrieve
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from contextlib import contextmanager
-from typing import List
-from dataclasses import dataclass
+
 
 def download_file(url: str):
     logging.info(f"Downloading input: {urlparse(url).path}")
@@ -15,12 +16,13 @@ def download_file(url: str):
     logging.info(f"Downloaded input")
     return file_name
 
+
 @contextmanager
-def download_files_manager(url_list: List[str]):
+def download_files_manager(*urls: str) -> None | str | list[str]:
     try:
         thread_list = []
         list_objects = []
-        for url in url_list:
+        for url in urls:
             filename = tempfile.NamedTemporaryFile()
             logging.info("Downloading file from url -> %s, filename -> %s", url, filename.name)
             with ThreadPoolExecutor(max_workers=20) as exe:
@@ -29,7 +31,13 @@ def download_files_manager(url_list: List[str]):
         for thread in as_completed(thread_list):
             path, _ = thread.result()
             logging.info("File downloaded to: %s", path)
-        yield [obj.name for obj in list_objects]
+        downloaded_files = [obj.name for obj in list_objects]
+        if len(downloaded_files) == 0:
+            yield None
+        elif len(downloaded_files) == 1:
+            yield downloaded_files[0]
+        else:
+            yield downloaded_files
     finally:
         for obj in list_objects:
             obj.close()

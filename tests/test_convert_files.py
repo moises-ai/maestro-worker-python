@@ -91,23 +91,26 @@ def test_should_convert_valid_audio_file():
     assert _get_hash(input_file_path) == _get_hash(output_file_path)
     Path(output_file_path).unlink(missing_ok=True)
 
+
 def test_should_convert_multiple_valid_audio_files_and_delete_after_context():
     input_file_path, output_file_path = TEST_PATH / "silent.ogg", TEST_PATH / "silent.wav"
     converted_files_list = []
     with convert_files_manager(
-        [FileToConvert(
+        FileToConvert(
             input_file_path=input_file_path,
             output_file_path=output_file_path,
             file_format="wav",
-        ), FileToConvert(
+        ),
+        FileToConvert(
             input_file_path=input_file_path,
             output_file_path=output_file_path,
             file_format="wav",
-        )]
+        ),
     ) as converted_files:
         converted_files_list = converted_files
     result = [os.path.exists(path) for path in converted_files_list]
     assert all(result) == False
+
 
 def _get_hash(file_name):
     process = subprocess.run(

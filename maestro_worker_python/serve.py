@@ -13,6 +13,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 from importlib.machinery import SourceFileLoader
+from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .response import ValidationError, WorkerResponse
@@ -24,6 +25,17 @@ sentry_sdk.init(
 )
 
 app = FastAPI()
+
+origins = ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 logging.basicConfig(level=settings.log_level.upper())
 

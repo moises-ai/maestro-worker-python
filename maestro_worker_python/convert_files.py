@@ -34,7 +34,10 @@ def convert_files(convert_files: List[FileToConvert]):
         for convert_file in convert_files:
             target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
             futures.append(
-                executor.submit(target_function, convert_file.input_file_path, convert_file.output_file_path, convert_file.max_duration)
+                executor.submit(
+                    target_function, convert_file.input_file_path, convert_file.output_file_path,
+                    convert_file.max_duration
+                )
             )
 
         for future in futures:
@@ -88,6 +91,7 @@ def _run_subprocess(command):
         invalid_file_errors = [
             "Invalid data found when processing input",
             "Output file #0 does not contain any stream",
+            "Output file does not contain any stream",
             "Invalid argument"
         ]
         if any(error in exc.stderr.decode() for error in invalid_file_errors):

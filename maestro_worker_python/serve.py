@@ -19,8 +19,10 @@ from .config import settings
 from .response import ValidationError, WorkerResponse
 
 sentry_sdk.init(
+    debug=True,
     dsn=settings.sentry_dsn,
     traces_sample_rate=settings.sentry_traces_sample_rate,
+    sample_rate=settings.sentry_errors_sample_rate,
     environment=settings.environment,
 )
 

@@ -10,11 +10,9 @@ def get_duration(local_file_path: str) -> int:
                                "format=duration", "-of",
                                "default=noprint_wrappers=1:nokey=1",
                                local_file_path])
+        if duration == b'N/A\n':
+            logging.info(f"File {local_file_path} has no valid duration")
+            return None
+        return int(float(duration))
     except Exception as e:
         logging.error(f"Error getting duration for {local_file_path}: {e}")
-    
-    if duration == b'N/A\n':
-        logging.info(f"File {local_file_path} has no valid duration")
-        return None
-    
-    return int(float(duration))

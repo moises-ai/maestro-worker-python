@@ -1,4 +1,3 @@
-
 import logging
 from subprocess import check_output
 

@@ -15,4 +15,4 @@ def get_duration(local_file_path: str) -> int:
             return None
         return int(float(duration))
     except Exception as e:
-        logging.error(f"Error getting duration for {local_file_path}: {e}")
+        logging.error(f"Error getting duration: {e}")

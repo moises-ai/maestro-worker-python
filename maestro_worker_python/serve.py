@@ -8,6 +8,7 @@ import traceback
 import asyncio
 import sentry_sdk
 import pydantic
+from urllib.parse import urlparse
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -18,11 +19,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .response import ValidationError, WorkerResponse
 
+
+def filter_transactions(event, hint):
+    parsed_url = urlparse(event["request"]["url"])
+
+    if parsed_url.path == "/health":
+        return None
+
+    return event
+
+
 sentry_sdk.init(
     dsn=settings.sentry_dsn,
     traces_sample_rate=settings.sentry_traces_sample_rate,
     sample_rate=settings.sentry_errors_sample_rate,
     environment=settings.environment,
+    before_send_transaction=filter_transactions,
 )
 
 app = FastAPI()

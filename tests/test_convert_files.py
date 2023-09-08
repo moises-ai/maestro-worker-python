@@ -100,21 +100,52 @@ def test_should_raise_validation_error_if_source_has_no_audio(file_format, caplo
     assert "does not contain any strea" in str(exc.value)
 
 
-def test_should_convert_valid_audio_file():
+@pytest.mark.parametrize(
+    "input_name, output_name, format",
+    [
+        ("silent.ogg", "converted.wav", "wav"),
+        ("silent with space.ogg", "converted.wav", "wav"),
+    ],
+)
+def test_should_convert_valid_wav_audio_file(input_name, output_name, format):
     input_file_path, output_file_path = (
-        TEST_PATH / "silent.ogg",
-        TEST_PATH / "silent.wav",
+        TEST_PATH / input_name,
+        TEST_PATH / output_name,
     )
     convert_files(
         [
             FileToConvert(
                 input_file_path=input_file_path,
                 output_file_path=output_file_path,
-                file_format="wav",
+                file_format=format,
             )
         ]
     )
     assert _get_hash(input_file_path) == _get_hash(output_file_path)
+    Path(output_file_path).unlink(missing_ok=True)
+
+
+@pytest.mark.parametrize(
+    "input_name, output_name, format",
+    [
+        ("silent.ogg", "converted.m4a", "m4a"),
+        ("silent with space.wav", "converted.m4a", "m4a"),
+    ],
+)
+def test_should_convert_valid_m4a_audio_file(input_name, output_name, format):
+    input_file_path, output_file_path = (
+        TEST_PATH / input_name,
+        TEST_PATH / output_name,
+    )
+    convert_files(
+        [
+            FileToConvert(
+                input_file_path=input_file_path,
+                output_file_path=output_file_path,
+                file_format=format,
+            )
+        ]
+    )
     Path(output_file_path).unlink(missing_ok=True)
 
 
@@ -153,8 +184,19 @@ def _get_hash(file_name):
 
 def _get_hash(file_name):
     process = subprocess.run(
-        f"ffmpeg -loglevel error -i {file_name} -map 0 -f hash -",
-        shell=True,
+        [
+            "ffmpeg",
+            "-loglevel",
+            "error",
+            "-i",
+            str(file_name),
+            "-map",
+            "0",
+            "-f",
+            "hash",
+            "-",
+        ],
+        shell=False,
         capture_output=True,
         check=True,
     )

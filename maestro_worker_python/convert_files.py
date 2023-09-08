@@ -77,16 +77,52 @@ def convert_files_manager(*convert_files: FileToConvert) -> None | str | list[st
 
 
 def _convert_to_wav(input_file_path, output_file_path, max_duration):
-    _run_subprocess(f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -ar 44100 {output_file_path}")
+    _run_subprocess(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-t",
+            str(max_duration),
+            "-i",
+            str(input_file_path),
+            "-ar",
+            "44100",
+            str(output_file_path),
+        ]
+    )
 
 
 def _convert_to_m4a(input_file_path, output_file_path, max_duration):
-    _run_subprocess(f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -c:a aac -b:a 192k -ar 44100 -movflags +faststart {output_file_path}")
+    _run_subprocess(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-t",
+            str(max_duration),
+            "-i",
+            str(input_file_path),
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-ar",
+            "44100",
+            "-movflags",
+            "+faststart",
+            str(output_file_path),
+        ]
+    )
 
 
 def _run_subprocess(command):
     try:
-        process = subprocess.run(command, shell=True, capture_output=True, check=True)
+        process = subprocess.run(command, shell=False, capture_output=True, check=True)
     except subprocess.CalledProcessError as exc:
         invalid_file_errors = [
             "Invalid data found when processing input",

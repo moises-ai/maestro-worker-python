@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import tempfile
+import concurrent.futures
 import logging
 import subprocess
-import concurrent.futures
-
+import tempfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import List
+
 from .response import ValidationError
-from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +32,17 @@ def convert_files(convert_files: List[FileToConvert]):
     futures = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for convert_file in convert_files:
-            target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
+            target_function = (
+                _convert_to_m4a
+                if convert_file.file_format == "m4a"
+                else _convert_to_wav
+            )
             futures.append(
                 executor.submit(
-                    target_function, convert_file.input_file_path, convert_file.output_file_path,
-                    convert_file.max_duration
+                    target_function,
+                    convert_file.input_file_path,
+                    convert_file.output_file_path,
+                    convert_file.max_duration,
                 )
             )
 
@@ -55,10 +61,17 @@ def convert_files_manager(*convert_files: FileToConvert) -> None | str | list[st
             for convert_file in convert_files:
                 file_format = ".m4a" if convert_file.file_format == "m4a" else ".wav"
                 filename = tempfile.NamedTemporaryFile(suffix=file_format)
-                target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
+                target_function = (
+                    _convert_to_m4a
+                    if convert_file.file_format == "m4a"
+                    else _convert_to_wav
+                )
                 thread_list.append(
                     executor.submit(
-                        target_function, convert_file.input_file_path, filename.name, convert_file.max_duration
+                        target_function,
+                        convert_file.input_file_path,
+                        filename.name,
+                        convert_file.max_duration,
                     )
                 )
                 list_objects.append(filename)
@@ -77,27 +90,68 @@ def convert_files_manager(*convert_files: FileToConvert) -> None | str | list[st
 
 
 def _convert_to_wav(input_file_path, output_file_path, max_duration):
-    _run_subprocess(f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -ar 44100 {output_file_path}")
+    _run_subprocess(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-t",
+            str(max_duration),
+            "-i",
+            str(input_file_path),
+            "-ar",
+            "44100",
+            str(output_file_path),
+        ]
+    )
 
 
 def _convert_to_m4a(input_file_path, output_file_path, max_duration):
-    _run_subprocess(f"ffmpeg -y -hide_banner -loglevel error -t {max_duration} -i {input_file_path} -c:a aac -b:a 192k -ar 44100 -movflags +faststart {output_file_path}")
+    _run_subprocess(
+        [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-t",
+            str(max_duration),
+            "-i",
+            str(input_file_path),
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-ar",
+            "44100",
+            "-movflags",
+            "+faststart",
+            str(output_file_path),
+        ]
+    )
 
 
 def _run_subprocess(command):
     try:
-        process = subprocess.run(command, shell=True, capture_output=True, check=True)
+        process = subprocess.run(command, shell=False, capture_output=True, check=True)
     except subprocess.CalledProcessError as exc:
         invalid_file_errors = [
             "Invalid data found when processing input",
             "Output file #0 does not contain any stream",
             "Output file does not contain any stream",
-            "Invalid argument"
+            "Invalid argument",
         ]
         if any(error in exc.stderr.decode() for error in invalid_file_errors):
             logger.warning(
-               "Could not convert because the file is invalid",
-                extra={"props": {"stderr": exc.stderr.decode(), "stdout": exc.stdout.decode()}}
+                "Could not convert because the file is invalid",
+                extra={
+                    "props": {
+                        "stderr": exc.stderr.decode(),
+                        "stdout": exc.stdout.decode(),
+                    }
+                },
             )
             raise ValidationError(
                 f"Could not convert because the file is invalid, ffmpeg stderr: {exc.stderr.decode()}"
@@ -110,6 +164,11 @@ def _run_subprocess(command):
         if process.stderr:
             logger.warning(
                 "Non-falal error during conversion",
-                extra={"props": {"stderr": process.stderr.decode(), "stdout": process.stdout.decode()}}
+                extra={
+                    "props": {
+                        "stderr": process.stderr.decode(),
+                        "stdout": process.stdout.decode(),
+                    }
+                },
             )
         logger.info(f"Conversion output: {process.stdout.decode()}")

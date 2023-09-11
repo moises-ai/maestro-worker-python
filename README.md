@@ -1,6 +1,6 @@
 # Maestro Worker Python
 
-This module scaffolds the creation of a standard inference worker to run on the Moises/Maestro infra-structure.
+This module scaffolds the creation of a standard inference worker to run on the Moises/Maestro infrastructure.
 
 ## Installation
 To install the main branch:
@@ -10,13 +10,13 @@ pip install git+https://github.com/moises-ai/maestro-worker-python.git
 
 To install a version (recommended):
 ```
-pip install git+https://github.com/moises-ai/maestro-worker-python.git@3.3.0
+pip install git+https://github.com/moises-ai/maestro-worker-python.git@3.3.1
 ```
 
 ## Maestro init
-Run the init script to scaffold a maestro worker in the current directory. 
+Run the init script to scaffold a maestro worker in the current directory.
 
-To create in a different one, use the flag `--folder`
+To create a different one, use the flag `--folder`
 
 ```bash
 maestro-init
@@ -54,7 +54,7 @@ curl --request POST --url http://localhost:8000/worker-example/inference  --head
     --data '{"input_1": "Hello"}'
 ```
 ### Upload/Download server for development purposes
-In order to avoid using signedurls for uploading/download files, you can use the `maestro-upload-server` command. This will start a server in the default `9090` port that will upload/download files in the local `./uploads` folder.
+In order to avoid using signedurls for uploading/downloading files, you can use the `maestro-upload-server` command. This will start a server in the default `9090` port that will upload/download files in the local `./uploads` folder.
 
 Examples:
 
@@ -87,7 +87,7 @@ curl http://localhost:9090/list-files
 
 ## Worker Utils
 
-### Download a file from url:
+### Download a file from URL:
 ```python
 from maestro_worker_python.download_file import download_file
 
@@ -145,7 +145,7 @@ poetry install
 poetry run maestro-init
 ```
 
-If you get a keyring error (ubuntu), you may need to run the following:
+If you get a keyring error (Ubuntu), you may need to run the following:
 ```bash
 export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
 ```

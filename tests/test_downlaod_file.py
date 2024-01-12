@@ -1,5 +1,7 @@
 import os
+import pytest
 from maestro_worker_python.download_file import download_file, download_files_manager
+from maestro_worker_python.response import ValidationError
 
 
 def test_download_file(httpserver):
@@ -9,6 +11,16 @@ def test_download_file(httpserver):
     file_name = download_file(url)
     with open(file_name) as f:
         assert f.read() == "hello"
+
+
+def test_bad_response_should_raise_validation_error(httpserver):
+    httpserver.expect_request("/bad_url").respond_with_data("", status=404)
+    bad_url = httpserver.url_for("/bad_url")
+
+    with pytest.raises(ValidationError) as excinfo:
+        download_file(bad_url)
+
+    assert "Bad download input" in str(excinfo.value)
 
 
 def test_download_files_manager(httpserver):

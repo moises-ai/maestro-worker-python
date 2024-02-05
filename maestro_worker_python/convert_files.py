@@ -163,7 +163,7 @@ def _run_subprocess(command):
     else:
         if process.stderr:
             logger.warning(
-                "Non-falal error during conversion",
+                "Non-fatal error during conversion",
                 extra={
                     "props": {
                         "stderr": process.stderr.decode(),

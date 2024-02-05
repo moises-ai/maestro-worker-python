@@ -13,7 +13,7 @@ from .response import ValidationError
 
 def download_file(url: str, filename: str = None):
     logging.info(f"Downloading input: {url}")
-    response = requests.get(url, allow_redirects=True)
+    response = requests.get(url, allow_redirects=True, timeout=300)
 
     try:
         response.raise_for_status()

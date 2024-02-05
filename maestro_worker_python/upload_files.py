@@ -40,7 +40,7 @@ def _upload(upload_file: UploadFile, did_raise_exception):
     logging.info(f"Uploading:{upload_file.file_path}")
     try:
         with open(upload_file.file_path, "rb") as data:
-            response = requests.put(upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type})
+            response = requests.put(upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type}, timeout=300)
             response.raise_for_status()
             logging.info(f"Uploaded {upload_file.file_path}")
     except Exception as e:

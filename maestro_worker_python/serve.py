@@ -71,7 +71,7 @@ async def internal_exception_handler(request: Request, exc: Exception):
     try:
         return JSONResponse(status_code=500, content=jsonable_encoder({"error":  tb}))
     finally:
-        if error_counter > 2:
+        if error_counter > 10:
             logging.error("Too many consecutive errors, shutting down worker")
             os.kill(os.getpid(), signal.SIGINT)
 

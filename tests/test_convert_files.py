@@ -1,4 +1,3 @@
-import hashlib
 import os
 import subprocess
 from pathlib import Path
@@ -101,13 +100,15 @@ def test_should_raise_validation_error_if_source_has_no_audio(file_format, caplo
 
 
 @pytest.mark.parametrize(
-    "input_name, output_name, format",
+    "input_name, output_name, format, sample_rate",
     [
-        ("silent.ogg", "converted.wav", "wav"),
-        ("silent with space.ogg", "converted.wav", "wav"),
+        ("silent.ogg", "converted_44100.wav", "wav", 44100),
+        ("silent with space.ogg", "converted_44100.wav", "wav", 44100),
+        ("silent.ogg", "converted_48000.wav", "wav", 48000),
+        ("silent with space.ogg", "converted_48000.wav", "wav", 48000),
     ],
 )
-def test_should_convert_valid_wav_audio_file(input_name, output_name, format):
+def test_should_convert_valid_wav_audio_file(input_name, output_name, format, sample_rate):
     input_file_path, output_file_path = (
         TEST_PATH / input_name,
         TEST_PATH / output_name,
@@ -118,21 +119,24 @@ def test_should_convert_valid_wav_audio_file(input_name, output_name, format):
                 input_file_path=input_file_path,
                 output_file_path=output_file_path,
                 file_format=format,
+                sample_rate=sample_rate,
             )
         ]
     )
-    assert _get_hash(input_file_path) == _get_hash(output_file_path)
+    assert _get_hash(input_file_path, sample_rate) == _get_hash(output_file_path, sample_rate)
     Path(output_file_path).unlink(missing_ok=True)
 
 
 @pytest.mark.parametrize(
-    "input_name, output_name, format",
+    "input_name, output_name, format, sample_rate",
     [
-        ("silent.ogg", "converted.m4a", "m4a"),
-        ("silent with space.wav", "converted.m4a", "m4a"),
+        ("silent.ogg", "converted_44100.m4a", "m4a", 44100),
+        ("silent with space.wav", "converted_44100.m4a", "m4a", 44100),
+        ("silent.ogg", "converted_48000.m4a", "m4a", 48000),
+        ("silent with space.wav", "converted_48000.m4a", "m4a", 48000),
     ],
 )
-def test_should_convert_valid_m4a_audio_file(input_name, output_name, format):
+def test_should_convert_valid_m4a_audio_file(input_name, output_name, format, sample_rate):
     input_file_path, output_file_path = (
         TEST_PATH / input_name,
         TEST_PATH / output_name,
@@ -143,6 +147,7 @@ def test_should_convert_valid_m4a_audio_file(input_name, output_name, format):
                 input_file_path=input_file_path,
                 output_file_path=output_file_path,
                 file_format=format,
+                sample_rate=sample_rate,
             )
         ]
     )
@@ -172,32 +177,21 @@ def test_should_convert_multiple_valid_audio_files_and_delete_after_context():
     assert all(result) == False
 
 
-def _get_hash(file_name):
-    process = subprocess.run(
-        f"ffmpeg -loglevel error -i {file_name} -map 0 -f hash -",
-        shell=True,
-        capture_output=True,
-        check=True,
-    )
-    return process.stdout.split(b"=")[1].strip()
+def _get_hash(file_name, sample_rate):
+    command = [
+        "ffmpeg",
+        "-loglevel",
+        "error",
+        "-i",
+        str(file_name),
+        "-ar",
+        str(sample_rate),
+        "-map",
+        "0",
+        "-f",
+        "hash",
+        "-"
+    ]
 
-
-def _get_hash(file_name):
-    process = subprocess.run(
-        [
-            "ffmpeg",
-            "-loglevel",
-            "error",
-            "-i",
-            str(file_name),
-            "-map",
-            "0",
-            "-f",
-            "hash",
-            "-",
-        ],
-        shell=False,
-        capture_output=True,
-        check=True,
-    )
+    process = subprocess.run(command, shell=False, capture_output=True, check=True)
     return process.stdout.split(b"=")[1].strip()

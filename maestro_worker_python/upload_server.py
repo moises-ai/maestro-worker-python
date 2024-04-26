@@ -24,6 +24,14 @@ async def get_file(filename: str):
     return f"File {filename} does not exist."
 
 
+@app.get("/delete-file/{filename}")
+async def delete_file(filename: str):
+    file_path = "uploads/" + filename
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    return {"result": "OK"}
+
+
 @app.get("/clean")
 async def clean():
     for file in glob("uploads/*"):

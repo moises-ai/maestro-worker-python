@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import tempfile
 import threading
@@ -9,6 +8,7 @@ from dataclasses import dataclass
 from os.path import join
 from typing import List, Any
 
+import orjson
 import requests
 
 
@@ -24,11 +24,10 @@ def upload_files(upload_files: List[UploadFile]):
     threads_upload = []
     did_raise_exception = threading.Event()
     for file_ in upload_files:
-        t = threading.Thread(target=_upload, args=(
-            file_, did_raise_exception,))
+        t = threading.Thread(target=_upload, args=(file_, did_raise_exception))
         threads_upload.append(t)
         t.start()
-    
+
     for t in threads_upload:
         t.join()
 
@@ -40,7 +39,9 @@ def _upload(upload_file: UploadFile, did_raise_exception):
     logging.info(f"Uploading:{upload_file.file_path}")
     try:
         with open(upload_file.file_path, "rb") as data:
-            response = requests.put(upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type}, timeout=300)
+            response = requests.put(
+                upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type}, timeout=300
+            )
             response.raise_for_status()
             logging.info(f"Uploaded {upload_file.file_path}")
     except Exception as e:
@@ -60,8 +61,8 @@ def upload_json_data(upload_data: list[UploadJsonData]):
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         for i, upload in enumerate(upload_data):
-            with open(join(tmp_dir, f"{i}.json"), "w") as tmp_file:
-                json.dump(upload.data, tmp_file)
+            with open(join(tmp_dir, f"{i}.json"), "wb") as tmp_file:
+                tmp_file.write(orjson.dumps(upload.data, option=orjson.OPT_SERIALIZE_NUMPY))
                 tmp_file.flush()
                 files_to_upload.append(
                     UploadFile(file_path=tmp_file.name, signed_url=upload.signed_url, file_type="application/json")

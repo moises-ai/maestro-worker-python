@@ -1,5 +1,4 @@
 import os
-import signal
 import socket
 import datetime
 import logging
@@ -18,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .response import ValidationError, WorkerResponse
+from .kill_process import terminate_current_process, kill_child_processes
 
 
 def filter_transactions(event, hint):
@@ -73,7 +73,7 @@ async def internal_exception_handler(request: Request, exc: Exception):
     finally:
         if error_counter > 10:
             logging.error("Too many consecutive errors, shutting down worker")
-            os.kill(os.getpid(), signal.SIGINT)
+            terminate_current_process()
 
         async with lock:
             error_counter += 1
@@ -111,7 +111,8 @@ async def health(request: Request):
 
 @app.on_event("shutdown")
 def shutdown_event():
-    print("Shutting down, bye bye")
+    logging.info("Shutting down, bye bye")
+    kill_child_processes()
     os.remove("/tmp/http_ready")
 
 

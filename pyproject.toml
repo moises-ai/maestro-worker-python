@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "maestro-worker-python"
-version = "3.5.1"
+version = "3.5.2"
 description = "Utility to run workers on Moises/Maestro"
 authors = ["Moises.ai"]
 license = "MIT"

@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .response import ValidationError, WorkerResponse
-from .kill_process import terminate_current_process, kill_child_processes
+from .kill_process import terminate_current_process
 
 
 def filter_transactions(event, hint):
@@ -112,7 +112,6 @@ async def health(request: Request):
 @app.on_event("shutdown")
 def shutdown_event():
     logging.info("Shutting down, bye bye")
-    kill_child_processes()
     os.remove("/tmp/http_ready")
 
 

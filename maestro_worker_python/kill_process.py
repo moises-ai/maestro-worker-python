@@ -3,7 +3,7 @@ import logging
 from contextlib import suppress
 
 
-def terminate_current_process():
+def kill_child_processes():
     current_process = psutil.Process()
     logging.info(f'Terminating everything from parent process PID: {current_process.pid}')
     
@@ -18,7 +18,10 @@ def terminate_current_process():
         logging.warning(f'Child process PID: {p.pid} did not terminate, killing forcefully')
         with suppress(psutil.NoSuchProcess):
             p.kill()
-    
+
+
+def terminate_current_process():
+    current_process = psutil.Process()
     logging.info(f'Sending SIGTERM to current process PID: {current_process.pid}')
     with suppress(psutil.NoSuchProcess):
         current_process.terminate()

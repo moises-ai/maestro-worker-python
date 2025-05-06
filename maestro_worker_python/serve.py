@@ -84,9 +84,12 @@ async def validation_error_handler(request: Request, exc: ValidationError):
     return JSONResponse(status_code=400, content=jsonable_encoder({"error":  exc.reason}))
 
 
-@app.exception_handler(pydantic.error_wrappers.ValidationError)
-async def validation_error_handler_pydantic(request: Request, exc: ValidationError):
-    return JSONResponse(status_code=400, content=jsonable_encoder({"error":  exc.errors()}))
+@app.exception_handler(pydantic.ValidationError)
+async def pydantic_validation_exception_handler(request: Request, exc: pydantic.ValidationError):
+    return JSONResponse(
+        status_code=400,
+        content=jsonable_encoder({"detail": exc.errors()}),
+    )
 
 
 @app.post("/inference", response_model=WorkerResponse)

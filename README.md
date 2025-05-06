@@ -50,7 +50,7 @@ maestro-server --worker=./worker.py
 Send a request to the server inference endpoint:
 
 ```bash
-curl --request POST --url http://localhost:8000/worker-example/inference  --header 'Content-Type: application/json' \
+curl --request POST --url http://localhost:8000/inference  --header 'Content-Type: application/json' \
     --data '{"input_1": "Hello"}'
 ```
 ### Upload/Download server for development purposes

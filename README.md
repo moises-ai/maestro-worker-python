@@ -187,8 +187,11 @@ To bump the package version:
 uv version --bump patch
 ```
 
-Running tests:
+Run the quality checks:
 
 ```bash
 uv run pytest
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
 ```

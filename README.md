@@ -64,12 +64,11 @@ curl --request POST --url http://localhost:8000/inference  --header 'Content-Typ
 The `/health` endpoint reports the Maestro worker package version and available
 GPU metadata in addition to `ok`. CUDA provenance is explicit:
 `driver_supported_version` is the newest CUDA version supported by the host
-driver, `container_version` comes from the image's `CUDA_VERSION`, and
-`torch_build_version` is the toolkit version used to build an already-imported
-PyTorch. NVIDIA probing is best-effort, so CPU workers return an empty
-`hardware.gpus` list. MIG instances are counted when visible; MPS reports its
-active-thread percentage when configured, but cannot reliably infer the total
-number of clients.
+driver, while `torch_build_version` is the toolkit version used to build an
+already-imported PyTorch. NVIDIA probing is best-effort, so CPU workers return
+an empty `hardware.gpus` list. MIG instances are counted when visible; MPS
+reports its active-thread percentage when configured, but cannot reliably infer
+the total number of clients.
 
 ### Upload/Download server for development purposes
 In order to avoid using signedurls for uploading/downloading files, you can use the `maestro-upload-server` command. This will start a server in the default `9090` port that will upload/download files in the local `./uploads` folder.

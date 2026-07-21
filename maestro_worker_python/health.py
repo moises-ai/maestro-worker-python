@@ -8,6 +8,8 @@ from importlib import metadata
 from io import StringIO
 from typing import Any
 
+import pynvml
+
 
 def _run_nvidia_smi(*args: str) -> str | None:
     try:
@@ -77,11 +79,40 @@ def _partitioning_metadata() -> dict[str, Any] | None:
     return None
 
 
-def _driver_supported_cuda_version() -> str | None:
-    """Latest CUDA version supported by the host driver, as reported by nvidia-smi."""
-    output = _run_nvidia_smi() or ""
-    match = re.search(r"CUDA Version:\s*([0-9]+(?:\.[0-9]+)*)", output)
+def _nvml_driver_supported_cuda_version() -> str | None:
+    """Latest CUDA version supported by the host driver, as reported by NVML."""
+    try:
+        pynvml.nvmlInit()
+    except pynvml.NVMLError:
+        return None
+
+    try:
+        version = pynvml.nvmlSystemGetCudaDriverVersion_v2()
+    except pynvml.NVMLError:
+        return None
+    finally:
+        try:
+            pynvml.nvmlShutdown()
+        except pynvml.NVMLError:
+            pass
+
+    major = version // 1000
+    minor = (version % 1000) // 10
+    return f"{major}.{minor}"
+
+
+def _nvidia_smi_driver_supported_cuda_version() -> str | None:
+    """Fallback for environments where the NVML library cannot be queried."""
+    output = _run_nvidia_smi("-q") or ""
+    match = re.search(r"CUDA(?: UMD)? Version\s*:\s*([0-9]+(?:\.[0-9]+)*)", output)
     return match.group(1) if match else None
+
+
+def _driver_supported_cuda_version() -> str | None:
+    return (
+        _nvml_driver_supported_cuda_version()
+        or _nvidia_smi_driver_supported_cuda_version()
+    )
 
 
 def _torch_cuda_version() -> str | None:
@@ -98,13 +129,12 @@ def _worker_version() -> str:
 
 
 def _collect_host_metadata() -> dict[str, Any]:
-    """Collect stable host/container metadata without making health depend on a GPU."""
+    """Collect stable host metadata without making health depend on a GPU."""
     return {
         "worker_version": _worker_version(),
         "hardware": {
             "cuda": {
                 "driver_supported_version": _driver_supported_cuda_version(),
-                "container_version": os.getenv("CUDA_VERSION"),
             },
             "gpus": _gpu_metadata(),
             "partitioning": _partitioning_metadata(),

@@ -21,6 +21,11 @@ docker compose build
 docker compose up
 ```
 
+`BASE_IMAGE` must provide a Python interpreter that satisfies the project's
+`requires-python` constraint. Its executable may be named `python`, `python3`,
+or live in an environment such as Conda; uv discovers it without downloading a
+separate interpreter.
+
 ## PyTorch workers
 
 Keep the PyTorch version in `pyproject.toml` so local development and the

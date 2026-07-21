@@ -42,9 +42,16 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     assert "UV_LINK_MODE=copy" in dockerfile
     assert "COPY pyproject.toml uv.lock ./" in dockerfile
     assert "--mount=type=cache,target=/root/.cache/uv" in dockerfile
-    assert "uv export --quiet --locked --no-dev --no-emit-project" in dockerfile
-    assert "uv pip install --system --no-deps --require-hashes" in dockerfile
-    assert "UV_PROJECT_ENVIRONMENT" not in dockerfile
+    assert (
+        'PYTHON_BIN="$(uv python find --no-project --no-python-downloads)"'
+        in dockerfile
+    )
+    assert 'UV_PROJECT_ENVIRONMENT="$("$PYTHON_BIN" -c' in dockerfile
+    assert 'sysconfig.get_config_var("prefix")' in dockerfile
+    assert "uv sync --locked --no-dev --no-install-project --inexact" in dockerfile
+    assert '--python "$PYTHON_BIN" --no-python-downloads' in dockerfile
+    assert "uv export" not in dockerfile
+    assert "uv pip install" not in dockerfile
     assert "COPY requirements.txt" not in dockerfile
 
     compose = (target / "docker-compose.yaml").read_text()
@@ -55,6 +62,7 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     assert "## PyTorch workers" in readme
     assert "torch==<version>" in readme
     assert "BASE_IMAGE" in readme
+    assert "must provide a Python interpreter" in readme
 
 
 def test_init_allows_identical_rerun_and_preserves_unrelated_files(

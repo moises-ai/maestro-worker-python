@@ -11,11 +11,10 @@ WORKDIR /worker
 
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv export --quiet --locked --no-dev --no-emit-project \
-        --output-file=/tmp/requirements.txt \
-    && uv pip install --system --no-deps --require-hashes \
-        --requirement=/tmp/requirements.txt \
-    && rm /tmp/requirements.txt
+    PYTHON_BIN="$(uv python find --no-project --no-python-downloads)" \
+    && UV_PROJECT_ENVIRONMENT="$("$PYTHON_BIN" -c 'import sysconfig; print(sysconfig.get_config_var("prefix"))')" \
+        uv sync --locked --no-dev --no-install-project --inexact \
+            --python "$PYTHON_BIN" --no-python-downloads
 
 COPY . .
 

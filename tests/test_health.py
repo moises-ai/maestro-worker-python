@@ -24,6 +24,7 @@ def nvml_host(monkeypatch):
         lambda *_args: pytest.fail("nvidia-smi fallback should not run"),
     )
     monkeypatch.delenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", raising=False)
+    monkeypatch.delenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT", raising=False)
     monkeypatch.delitem(sys.modules, "torch", raising=False)
     return lifecycle
 
@@ -158,14 +159,31 @@ def test_collect_health_metadata_degrades_without_nvidia(monkeypatch, nvml_host)
     assert nvml_host == []
 
 
-def test_collect_health_metadata_reports_detectable_mps_limit(monkeypatch, nvml_host):
+def test_collect_health_metadata_reports_configured_mps_limits(monkeypatch, nvml_host):
     monkeypatch.setenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", "50")
+    monkeypatch.setenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT", "0=11517M")
 
     metadata = health.collect_health_metadata()
 
     assert metadata["hardware"]["partitioning"] == {
         "method": "mps",
-        "active_thread_percentage": 50,
+        "configured_active_thread_percentage": 50,
+        "configured_pinned_device_memory_limit": "0=11517M",
+        "partition_count": None,
+    }
+    assert nvml_host == ["init", "shutdown"]
+
+
+def test_collect_health_metadata_detects_mps_from_memory_limit(monkeypatch, nvml_host):
+    monkeypatch.setenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", "invalid")
+    monkeypatch.setenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT", "0=11517M")
+
+    metadata = health.collect_health_metadata()
+
+    assert metadata["hardware"]["partitioning"] == {
+        "method": "mps",
+        "configured_active_thread_percentage": None,
+        "configured_pinned_device_memory_limit": "0=11517M",
         "partition_count": None,
     }
     assert nvml_host == ["init", "shutdown"]

@@ -30,21 +30,33 @@ def _partitioning_metadata(visible_mig_devices: int) -> dict[str, Any] | None:
             "visible_partition_count": visible_mig_devices,
         }
 
+    configured_active_thread_percentage = None
     active_thread_percentage = os.getenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE")
     if active_thread_percentage:
         try:
             percentage = int(active_thread_percentage)
         except ValueError:
-            return None
-        if 0 < percentage <= 100:
-            return {
-                "method": "mps",
-                "active_thread_percentage": percentage,
-                # MPS permits non-uniform client limits, so this percentage
-                # cannot reliably reveal the total number of clients.
-                "partition_count": None,
-            }
-    return None
+            percentage = None
+        if percentage is not None and 0 < percentage <= 100:
+            configured_active_thread_percentage = percentage
+
+    configured_pinned_device_memory_limit = (
+        os.getenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT") or None
+    )
+    if (
+        configured_active_thread_percentage is None
+        and configured_pinned_device_memory_limit is None
+    ):
+        return None
+
+    return {
+        "method": "mps",
+        "configured_active_thread_percentage": configured_active_thread_percentage,
+        "configured_pinned_device_memory_limit": configured_pinned_device_memory_limit,
+        # MPS permits non-uniform client limits, so configured limits cannot
+        # reliably reveal the total number of clients.
+        "partition_count": None,
+    }
 
 
 def _nvidia_smi_driver_supported_cuda_version() -> str | None:

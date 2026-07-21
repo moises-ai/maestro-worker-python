@@ -3,15 +3,15 @@ name = "maestro-worker-python"
 version = "4.0.0"
 description = "Utility to run workers on Moises/Maestro"
 readme = "README.md"
-requires-python = ">3.9,<3.14"
+requires-python = ">=3.10,<3.14"
 license = "MIT"
 authors = [{ name = "Moises.ai" }]
 dependencies = [
-  "fastapi>=0.100.0,<0.115.13",
+  "fastapi>=0.139.2,<0.140",
   "json-logging>=1.3,<2",
   "nvidia-ml-py>=12.535,<14",
   "psutil>=6.0.0,<7.1",
-  "pydantic-core>=2.9,<3",
+  "pydantic>=2.9,<3",
   "pydantic-settings>=2.9,<3",
   "requests>=2.31,<3",
   "sentry-sdk[fastapi]>=1.16,<3",
@@ -26,7 +26,7 @@ maestro-upload-server = "maestro_worker_python.run_upload_server:main"
 
 [dependency-groups]
 dev = [
-  "pytest>=7.2,<8",
+  "pytest>=9.0.3,<10",
   "pytest-httpserver>=1.0.6,<2",
 ]
 

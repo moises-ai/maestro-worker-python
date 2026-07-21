@@ -2,7 +2,7 @@ import logging
 from subprocess import check_output
 
 
-def get_duration(local_file_path: str) -> int | None:
+def get_duration(local_file_path: str) -> float | None:
     logging.info(f"Getting file duration for {local_file_path}")
     duration = None
     try:
@@ -21,7 +21,7 @@ def get_duration(local_file_path: str) -> int | None:
         if duration == b"N/A\n":
             logging.info(f"File {local_file_path} has no valid duration")
             return None
-        return int(float(duration))
+        return float(duration)
     except Exception as e:
         logging.error(f"Error getting duration: {e}")
         return None

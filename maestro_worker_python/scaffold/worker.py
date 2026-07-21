@@ -24,7 +24,7 @@ class MoisesWorker:
             time_end = time()
             # Send response with the result and the time it took to process the request
             return WorkerResponse(
-                billable_seconds=0,
+                billable_seconds=0.0,
                 stats={"duration": time_end - time_start},
                 result={"output": model_result},
             )

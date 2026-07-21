@@ -1,4 +1,6 @@
-maestro_worker_python.egg-info
-__pycache__
-venv
-.vscode
+*.egg-info/
+__pycache__/
+.venv/
+venv/
+.vscode/
+dist/

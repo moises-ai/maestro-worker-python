@@ -11,7 +11,7 @@ uv sync
 Run the worker locally:
 
 ```bash
-uv run maestro-server --worker worker.py --port 8000 --reload True
+WORKER_VERSION=dev uv run maestro-server --worker worker.py --port 8000 --reload True
 ```
 
 Build and run it in Docker:
@@ -20,6 +20,9 @@ Build and run it in Docker:
 docker compose build
 docker compose up
 ```
+
+`WORKER_VERSION` identifies the worker artifact in `/health`. Docker Compose
+sets it to `dev`; deployments should set it to the exact image tag.
 
 `BASE_IMAGE` must provide a Python interpreter that satisfies the project's
 `requires-python` constraint. Its executable may be named `python`, `python3`,

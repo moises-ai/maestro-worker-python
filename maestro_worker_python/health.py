@@ -3,7 +3,6 @@ import re
 import subprocess
 import sys
 from functools import lru_cache
-from importlib import metadata
 from typing import Any
 
 import pynvml
@@ -230,11 +229,9 @@ def _torch_observed_sm_count() -> int | None:
     return sm_count if isinstance(sm_count, int) and sm_count > 0 else None
 
 
-def _worker_version() -> str:
-    try:
-        return metadata.version("maestro-worker-python")
-    except metadata.PackageNotFoundError:
-        return "unknown"
+def _worker_version() -> str | None:
+    """Return the worker artifact version supplied by the deployment."""
+    return os.getenv("WORKER_VERSION") or None
 
 
 def _collect_host_metadata() -> dict[str, Any]:

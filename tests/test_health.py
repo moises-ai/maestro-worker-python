@@ -32,6 +32,10 @@ def nvml_host(monkeypatch):
     )
     monkeypatch.setattr(health.pynvml, "nvmlDeviceGetCount", lambda: 0)
     monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceIsMigDeviceHandle", lambda _device: False
+    )
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetUUID", lambda device: device)
+    monkeypatch.setattr(
         health,
         "_run_nvidia_smi",
         lambda *_args: pytest.fail("nvidia-smi fallback should not run"),
@@ -68,6 +72,22 @@ def test_collect_health_metadata_reports_nvml_gpu_and_visible_mig(
     monkeypatch.setattr(
         health.pynvml, "nvmlDeviceGetMigDeviceHandleByIndex", mig_device
     )
+    monkeypatch.setattr(
+        health.pynvml,
+        "nvmlDeviceGetAttributes",
+        lambda device: {
+            "mig-0": SimpleNamespace(
+                gpuInstanceSliceCount=1,
+                computeInstanceSliceCount=1,
+                memorySizeMB=10240,
+            ),
+            "mig-2": SimpleNamespace(
+                gpuInstanceSliceCount=3,
+                computeInstanceSliceCount=1,
+                memorySizeMB=40960,
+            ),
+        }[device],
+    )
     monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
     monkeypatch.setitem(
         sys.modules, "torch", SimpleNamespace(version=SimpleNamespace(cuda="12.4"))
@@ -85,8 +105,106 @@ def test_collect_health_metadata_reports_nvml_gpu_and_visible_mig(
             "partitioning": {
                 "method": "mig",
                 "visible_partition_count": 2,
+                "visible_partitions": [
+                    {
+                        "gpu_instance_slice_count": 1,
+                        "compute_instance_slice_count": 1,
+                        "memory_size_mb": 10240,
+                    },
+                    {
+                        "gpu_instance_slice_count": 3,
+                        "compute_instance_slice_count": 1,
+                        "memory_size_mb": 40960,
+                    },
+                ],
             },
         },
+    }
+    assert nvml_host == ["init", "shutdown"]
+
+
+def test_collect_health_metadata_detects_directly_visible_mig_device(
+    monkeypatch, nvml_host
+):
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetCount", lambda: 1)
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetHandleByIndex", lambda _index: "mig-0"
+    )
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceIsMigDeviceHandle", lambda _device: True
+    )
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetName", lambda _device: "NVIDIA H100 MIG"
+    )
+    monkeypatch.setattr(
+        health.pynvml,
+        "nvmlDeviceGetCudaComputeCapability",
+        lambda _device: (9, 0),
+    )
+    monkeypatch.setattr(
+        health.pynvml,
+        "nvmlDeviceGetMaxMigDeviceCount",
+        lambda _device: pytest.fail("a MIG handle must not be treated as a parent"),
+    )
+    monkeypatch.setattr(
+        health.pynvml,
+        "nvmlDeviceGetAttributes",
+        lambda _device: SimpleNamespace(
+            gpuInstanceSliceCount=3,
+            computeInstanceSliceCount=1,
+            memorySizeMB=40960,
+        ),
+    )
+
+    metadata = health.collect_health_metadata()
+
+    assert metadata["hardware"]["partitioning"] == {
+        "method": "mig",
+        "visible_partition_count": 1,
+        "visible_partitions": [
+            {
+                "gpu_instance_slice_count": 3,
+                "compute_instance_slice_count": 1,
+                "memory_size_mb": 40960,
+            }
+        ],
+    }
+    assert nvml_host == ["init", "shutdown"]
+
+
+def test_collect_health_metadata_keeps_mig_detection_when_attributes_fail(
+    monkeypatch, nvml_host
+):
+    def attributes(_device):
+        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_NOT_SUPPORTED)
+
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetCount", lambda: 1)
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetHandleByIndex", lambda _index: "mig-0"
+    )
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceIsMigDeviceHandle", lambda _device: True
+    )
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetName", lambda _device: None)
+    monkeypatch.setattr(
+        health.pynvml,
+        "nvmlDeviceGetCudaComputeCapability",
+        lambda _device: (9, 0),
+    )
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetAttributes", attributes)
+
+    metadata = health.collect_health_metadata()
+
+    assert metadata["hardware"]["partitioning"] == {
+        "method": "mig",
+        "visible_partition_count": 1,
+        "visible_partitions": [
+            {
+                "gpu_instance_slice_count": None,
+                "compute_instance_slice_count": None,
+                "memory_size_mb": None,
+            }
+        ],
     }
     assert nvml_host == ["init", "shutdown"]
 

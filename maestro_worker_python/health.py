@@ -23,11 +23,14 @@ def _run_nvidia_smi(*args: str) -> str | None:
     return result.stdout
 
 
-def _partitioning_metadata(visible_mig_devices: int) -> dict[str, Any] | None:
-    if visible_mig_devices:
+def _partitioning_metadata(
+    visible_mig_partitions: list[dict[str, int | None]],
+) -> dict[str, Any] | None:
+    if visible_mig_partitions:
         return {
             "method": "mig",
-            "visible_partition_count": visible_mig_devices,
+            "visible_partition_count": len(visible_mig_partitions),
+            "visible_partitions": visible_mig_partitions,
         }
 
     configured_active_thread_percentage = None
@@ -66,15 +69,65 @@ def _nvidia_smi_driver_supported_cuda_version() -> str | None:
     return match.group(1) if match else None
 
 
-def _nvml_gpu_metadata() -> tuple[list[dict[str, str | None]], int]:
-    """Collect visible physical GPUs and their visible active MIG devices."""
+def _nvml_mig_partition_metadata(device: Any) -> dict[str, int | None]:
+    try:
+        attributes = pynvml.nvmlDeviceGetAttributes(device)
+    except pynvml.NVMLError:
+        return {
+            "gpu_instance_slice_count": None,
+            "compute_instance_slice_count": None,
+            "memory_size_mb": None,
+        }
+
+    return {
+        "gpu_instance_slice_count": attributes.gpuInstanceSliceCount,
+        "compute_instance_slice_count": attributes.computeInstanceSliceCount,
+        "memory_size_mb": attributes.memorySizeMB,
+    }
+
+
+def _nvml_visible_mig_devices(device: Any) -> list[Any]:
+    try:
+        if pynvml.nvmlDeviceIsMigDeviceHandle(device):
+            return [device]
+    except pynvml.NVMLError:
+        pass
+
+    try:
+        max_mig_devices = pynvml.nvmlDeviceGetMaxMigDeviceCount(device)
+    except pynvml.NVMLError:
+        return []
+
+    mig_devices = []
+    for mig_index in range(max_mig_devices):
+        try:
+            mig_device = pynvml.nvmlDeviceGetMigDeviceHandleByIndex(device, mig_index)
+        except pynvml.NVMLError:
+            continue
+        mig_devices.append(mig_device)
+
+    return mig_devices
+
+
+def _nvml_device_identity(device: Any) -> str:
+    try:
+        return pynvml.nvmlDeviceGetUUID(device)
+    except pynvml.NVMLError:
+        return repr(device)
+
+
+def _nvml_gpu_metadata() -> tuple[
+    list[dict[str, str | None]], list[dict[str, int | None]]
+]:
+    """Collect visible GPUs and active MIG partitions."""
     try:
         device_count = pynvml.nvmlDeviceGetCount()
     except pynvml.NVMLError:
-        return [], 0
+        return [], []
 
     gpus = []
-    visible_mig_devices = 0
+    visible_mig_partitions = []
+    seen_mig_devices = set()
     for device_index in range(device_count):
         try:
             device = pynvml.nvmlDeviceGetHandleByIndex(device_index)
@@ -94,19 +147,16 @@ def _nvml_gpu_metadata() -> tuple[list[dict[str, str | None]], int]:
 
         gpus.append({"model": model, "sm_version": sm_version})
 
-        try:
-            max_mig_devices = pynvml.nvmlDeviceGetMaxMigDeviceCount(device)
-        except pynvml.NVMLError:
-            continue
-
-        for mig_index in range(max_mig_devices):
-            try:
-                pynvml.nvmlDeviceGetMigDeviceHandleByIndex(device, mig_index)
-            except pynvml.NVMLError:
+        for mig_device in _nvml_visible_mig_devices(device):
+            identity = _nvml_device_identity(mig_device)
+            if identity in seen_mig_devices:
                 continue
-            visible_mig_devices += 1
+            seen_mig_devices.add(identity)
+            visible_mig_partitions.append(
+                _nvml_mig_partition_metadata(mig_device)
+            )
 
-    return gpus, visible_mig_devices
+    return gpus, visible_mig_partitions
 
 
 def _collect_hardware_metadata() -> dict[str, Any]:
@@ -114,7 +164,7 @@ def _collect_hardware_metadata() -> dict[str, Any]:
     driver_version = None
     driver_supported_cuda_version = None
     gpus = []
-    visible_mig_devices = 0
+    visible_mig_partitions = []
 
     try:
         pynvml.nvmlInit()
@@ -135,7 +185,7 @@ def _collect_hardware_metadata() -> dict[str, Any]:
             except pynvml.NVMLError:
                 pass
 
-            gpus, visible_mig_devices = _nvml_gpu_metadata()
+            gpus, visible_mig_partitions = _nvml_gpu_metadata()
         finally:
             try:
                 pynvml.nvmlShutdown()
@@ -151,7 +201,7 @@ def _collect_hardware_metadata() -> dict[str, Any]:
             "driver_supported_version": driver_supported_cuda_version,
         },
         "gpus": gpus,
-        "partitioning": _partitioning_metadata(visible_mig_devices),
+        "partitioning": _partitioning_metadata(visible_mig_partitions),
     }
 
 

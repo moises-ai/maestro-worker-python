@@ -66,11 +66,12 @@ GPU metadata in addition to `ok`. `nvidia_driver_version` is the host driver,
 `driver_supported_version` is the newest CUDA version it supports, and
 `torch_build_version` is the toolkit version used to build an already-imported
 PyTorch. NVIDIA host probing uses NVML and is best-effort, so CPU workers return
-an empty `hardware.gpus` list. Active MIG instances are counted when visible;
-MPS reports its configured active-thread percentage and pinned-device-memory
-limit. These client settings can be further constrained by the MPS daemon, so
-they are not presented as effective limits and cannot reliably reveal the total
-number of clients. Once an already-imported PyTorch has initialized CUDA,
+an empty `hardware.gpus` list. Visible MIG partitions report their GPU-instance
+slice count, compute-instance slice count, and memory size. MPS reports its
+configured active-thread percentage and pinned-device-memory limit. These
+client settings can be further constrained by the MPS daemon, so they are not
+presented as effective limits and cannot reliably reveal the total number of
+clients. Once an already-imported PyTorch has initialized CUDA,
 `observed_sm_count` reports the SMs available to its current CUDA device without
 making the health check initialize CUDA itself.
 

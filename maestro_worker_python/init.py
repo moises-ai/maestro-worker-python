@@ -5,7 +5,6 @@ import shutil
 from importlib import metadata
 from tempfile import TemporaryDirectory
 
-
 _VERSION_PLACEHOLDER = "MAESTRO_WORKER_PYTHON_VERSION"
 
 
@@ -38,10 +37,10 @@ def main():
     parser.add_argument("--folder", default="./",
                         help="Folder to create the worker in")
 
-    args = parser.parse_args().__dict__
+    args = parser.parse_args()
 
     scaffold_dir = pathlib.Path(__file__).parent.resolve() / "scaffold"
-    target_dir = pathlib.Path(args.get("folder"))
+    target_dir = pathlib.Path(args.folder)
     if target_dir.is_symlink() or (target_dir.exists() and not target_dir.is_dir()):
         parser.error(f"target path is not a directory: {target_dir}")
 

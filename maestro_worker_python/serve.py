@@ -1,24 +1,27 @@
-import os
-import socket
+import asyncio
 import datetime
 import logging
-import json_logging
+import os
+import socket
 import traceback
-import asyncio
-import sentry_sdk
-import pydantic
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager, suppress
 from urllib.parse import urlparse
+
+import json_logging
+import pydantic
+import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
-from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .health import get_health_metadata
+from .kill_process import kill_child_processes, terminate_current_process
 from .load_worker import load_worker
 from .response import ValidationError, WorkerResponse
-from .kill_process import terminate_current_process, kill_child_processes
 
 
 def filter_transactions(event, hint):
@@ -38,12 +41,29 @@ sentry_sdk.init(
     before_send_transaction=filter_transactions,
 )
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    # Prime the cache before readiness probes start hitting /health.
+    get_health_metadata()
+    with open("/tmp/http_ready", "a") as ready_file:
+        ready_file.write("Ready to serve")
+
+    try:
+        yield
+    finally:
+        logging.info("Shutting down, bye bye")
+        kill_child_processes()
+        with suppress(FileNotFoundError):
+            os.remove("/tmp/http_ready")
+
+
+app = FastAPI(lifespan=lifespan)
 
 origins = ["*"]
 
 app.add_middleware(
-    CORSMiddleware,
+    # ty does not yet model Starlette's class-based middleware factory protocol.
+    CORSMiddleware,  # ty: ignore[invalid-argument-type]
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
@@ -111,19 +131,3 @@ async def index(request: Request):
 @app.get("/health")
 async def health(request: Request):
     return {"ok": True, **get_health_metadata()}
-
-
-@app.on_event("shutdown")
-def shutdown_event():
-    logging.info("Shutting down, bye bye")
-    kill_child_processes()
-    os.remove("/tmp/http_ready")
-
-
-@app.on_event("startup")
-def startup_event():
-    # Prime the cache before readiness probes start hitting /health.
-    get_health_metadata()
-    # Create a file to indicate that the server is running
-    with open("/tmp/http_ready", "a") as f:
-        f.write("Ready to serve")

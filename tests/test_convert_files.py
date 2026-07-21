@@ -31,13 +31,25 @@ def corrupt_audio_file(tmp_path_factory):
 
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
 def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format):
-    with pytest.raises(FileConversionError) as exc:
+    with pytest.raises(FileConversionError):
         convert_files(
             [
                 FileToConvert(
                     input_file_path=TEST_PATH / "foobar.mp3",
                     output_file_path=f"{invalid_audio_file}.wav",
                     file_format=file_format,
+                )
+            ]
+        )
+
+
+def test_convert_files_requires_output_path():
+    with pytest.raises(ValueError, match="output_file_path is required"):
+        convert_files(
+            [
+                FileToConvert(
+                    input_file_path=TEST_PATH / "silent.ogg",
+                    file_format="wav",
                 )
             ]
         )
@@ -174,9 +186,10 @@ def test_should_convert_multiple_valid_audio_files_and_delete_after_context():
             file_format="wav",
         ),
     ) as converted_files:
+        assert isinstance(converted_files, list)
         converted_files_list = converted_files
     result = [os.path.exists(path) for path in converted_files_list]
-    assert all(result) == False
+    assert not any(result)
 
 
 def _get_hash(file_name, sample_rate):

@@ -1,13 +1,14 @@
 import logging
 from time import time
-from maestro_worker_python.response import WorkerResponse, ValidationError
+
+from maestro_worker_python.response import ValidationError, WorkerResponse
 
 
 def your_model(input):
     return f"{input} World"
 
 
-class MoisesWorker(object):
+class MoisesWorker:
     def __init__(self):
         logging.info("Loading model...")
         self.model = your_model
@@ -19,13 +20,13 @@ class MoisesWorker(object):
             if len(input_example) > 25:
                 raise ValidationError("input is too big")
             time_start = time()
-            result = self.model(input_example)
+            model_result = self.model(input_example)
             time_end = time()
             # Send response with the result and the time it took to process the request
             return WorkerResponse(
                 billable_seconds=0,
                 stats={"duration": time_end - time_start},
-                result={},
+                result={"output": model_result},
             )
         finally:
             logging.info("cleaning up")

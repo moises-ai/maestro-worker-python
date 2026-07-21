@@ -1,26 +1,30 @@
 from __future__ import annotations
-import requests
 
 import logging
 import tempfile
-
-from concurrent.futures import ThreadPoolExecutor
-from concurrent.futures import as_completed
+from collections.abc import Iterator
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
+
+import requests
 
 from .response import ValidationError
 
 
-def download_file(url: str, filename: str = None):
+def download_file(url: str, filename: str | None = None) -> str:
     logging.info(f"Downloading input: {url}")
     response = requests.get(url, allow_redirects=True, timeout=300)
 
     try:
         response.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        raise ValidationError(f"Bad download input: {response.status_code}: {e}")
+        raise ValidationError(f"Bad download input: {response.status_code}: {e}") from e
 
-    file_name = filename if filename is not None else tempfile.mktemp()
+    if filename is None:
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            file_name = temporary_file.name
+    else:
+        file_name = filename
     with open(file_name, 'wb') as file:
         file.write(response.content)
 
@@ -29,7 +33,7 @@ def download_file(url: str, filename: str = None):
 
 
 @contextmanager
-def download_files_manager(*urls: str) -> None | str | list[str]:
+def download_files_manager(*urls: str) -> Iterator[None | str | list[str]]:
     try:
         thread_list = []
         list_objects = []

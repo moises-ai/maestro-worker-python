@@ -215,14 +215,16 @@ def _torch_observed_sm_count() -> int | None:
     torch = sys.modules.get("torch")
     cuda = getattr(torch, "cuda", None)
     is_initialized = getattr(cuda, "is_initialized", None)
-    if not callable(is_initialized):
+    current_device = getattr(cuda, "current_device", None)
+    get_device_properties = getattr(cuda, "get_device_properties", None)
+    if not callable(is_initialized) or not callable(current_device) or not callable(get_device_properties):
         return None
 
     try:
         if not is_initialized():
             return None
-        device = cuda.current_device()
-        sm_count = cuda.get_device_properties(device).multi_processor_count
+        device = current_device()
+        sm_count = get_device_properties(device).multi_processor_count
     except Exception:
         return None
 

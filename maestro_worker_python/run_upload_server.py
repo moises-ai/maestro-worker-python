@@ -1,6 +1,7 @@
-import uvicorn
-import logging
 import argparse
+import logging
+
+import uvicorn
 
 
 def main():

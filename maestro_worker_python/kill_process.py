@@ -1,6 +1,7 @@
-import psutil
 import logging
 from contextlib import suppress
+
+import psutil
 
 
 def kill_child_processes():

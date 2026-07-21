@@ -3,6 +3,7 @@ import sys
 import pytest
 
 from maestro_worker_python import init
+from maestro_worker_python.load_worker import load_worker
 
 
 def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
@@ -64,6 +65,10 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     assert "torch==<version>" in readme
     assert "BASE_IMAGE" in readme
     assert "must provide a Python interpreter" in readme
+
+    generated_worker = load_worker(str(target / "worker.py"))
+    response = generated_worker.MoisesWorker().inference({"input_1": "Hello"})
+    assert response.result == {"output": "Hello World"}
 
 
 def test_init_allows_identical_rerun_and_preserves_unrelated_files(

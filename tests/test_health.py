@@ -6,6 +6,19 @@ import pytest
 from maestro_worker_python import health
 
 
+def _initialized_torch(cuda_version="12.4", sm_count=30):
+    return SimpleNamespace(
+        version=SimpleNamespace(cuda=cuda_version),
+        cuda=SimpleNamespace(
+            is_initialized=lambda: True,
+            current_device=lambda: 0,
+            get_device_properties=lambda _device: SimpleNamespace(
+                multi_processor_count=sm_count
+            ),
+        ),
+    )
+
+
 @pytest.fixture
 def nvml_host(monkeypatch):
     lifecycle = []
@@ -162,6 +175,7 @@ def test_collect_health_metadata_degrades_without_nvidia(monkeypatch, nvml_host)
 def test_collect_health_metadata_reports_configured_mps_limits(monkeypatch, nvml_host):
     monkeypatch.setenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", "50")
     monkeypatch.setenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT", "0=11517M")
+    monkeypatch.setitem(sys.modules, "torch", _initialized_torch())
 
     metadata = health.collect_health_metadata()
 
@@ -169,6 +183,7 @@ def test_collect_health_metadata_reports_configured_mps_limits(monkeypatch, nvml
         "method": "mps",
         "configured_active_thread_percentage": 50,
         "configured_pinned_device_memory_limit": "0=11517M",
+        "observed_sm_count": 30,
         "partition_count": None,
     }
     assert nvml_host == ["init", "shutdown"]
@@ -177,6 +192,16 @@ def test_collect_health_metadata_reports_configured_mps_limits(monkeypatch, nvml
 def test_collect_health_metadata_detects_mps_from_memory_limit(monkeypatch, nvml_host):
     monkeypatch.setenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", "invalid")
     monkeypatch.setenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT", "0=11517M")
+    monkeypatch.setitem(
+        sys.modules,
+        "torch",
+        SimpleNamespace(
+            cuda=SimpleNamespace(
+                is_initialized=lambda: False,
+                current_device=lambda: pytest.fail("health must not initialize CUDA"),
+            )
+        ),
+    )
 
     metadata = health.collect_health_metadata()
 
@@ -184,24 +209,26 @@ def test_collect_health_metadata_detects_mps_from_memory_limit(monkeypatch, nvml
         "method": "mps",
         "configured_active_thread_percentage": None,
         "configured_pinned_device_memory_limit": "0=11517M",
+        "observed_sm_count": None,
         "partition_count": None,
     }
     assert nvml_host == ["init", "shutdown"]
 
 
-def test_cached_health_refreshes_torch_version_without_reprobing_host(
+def test_cached_health_refreshes_torch_metadata_without_reprobing_host(
     monkeypatch, nvml_host
 ):
     health._get_host_metadata.cache_clear()
     monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
+    monkeypatch.setenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", "50")
 
     first = health.get_health_metadata()
-    monkeypatch.setitem(
-        sys.modules, "torch", SimpleNamespace(version=SimpleNamespace(cuda="12.6"))
-    )
+    monkeypatch.setitem(sys.modules, "torch", _initialized_torch("12.6", 30))
     second = health.get_health_metadata()
 
     assert first["hardware"]["cuda"]["torch_build_version"] is None
+    assert first["hardware"]["partitioning"]["observed_sm_count"] is None
     assert second["hardware"]["cuda"]["torch_build_version"] == "12.6"
+    assert second["hardware"]["partitioning"]["observed_sm_count"] == 30
     assert nvml_host == ["init", "shutdown"]
     health._get_host_metadata.cache_clear()

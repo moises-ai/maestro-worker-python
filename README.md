@@ -70,7 +70,9 @@ an empty `hardware.gpus` list. Active MIG instances are counted when visible;
 MPS reports its configured active-thread percentage and pinned-device-memory
 limit. These client settings can be further constrained by the MPS daemon, so
 they are not presented as effective limits and cannot reliably reveal the total
-number of clients.
+number of clients. Once an already-imported PyTorch has initialized CUDA,
+`observed_sm_count` reports the SMs available to its current CUDA device without
+making the health check initialize CUDA itself.
 
 ### Upload/Download server for development purposes
 In order to avoid using signedurls for uploading/downloading files, you can use the `maestro-upload-server` command. This will start a server in the default `9090` port that will upload/download files in the local `./uploads` folder.

@@ -161,6 +161,25 @@ def _torch_cuda_version() -> str | None:
     return getattr(getattr(torch, "version", None), "cuda", None)
 
 
+def _torch_observed_sm_count() -> int | None:
+    """SMs visible to an already-initialized Torch CUDA runtime."""
+    torch = sys.modules.get("torch")
+    cuda = getattr(torch, "cuda", None)
+    is_initialized = getattr(cuda, "is_initialized", None)
+    if not callable(is_initialized):
+        return None
+
+    try:
+        if not is_initialized():
+            return None
+        device = cuda.current_device()
+        sm_count = cuda.get_device_properties(device).multi_processor_count
+    except Exception:
+        return None
+
+    return sm_count if isinstance(sm_count, int) and sm_count > 0 else None
+
+
 def _worker_version() -> str:
     try:
         return metadata.version("maestro-worker-python")
@@ -183,10 +202,18 @@ def _get_host_metadata() -> dict[str, Any]:
 
 def _with_process_metadata(host_metadata: dict[str, Any]) -> dict[str, Any]:
     hardware = host_metadata["hardware"]
+    partitioning = hardware["partitioning"]
+    if partitioning and partitioning["method"] == "mps":
+        partitioning = {
+            **partitioning,
+            "observed_sm_count": _torch_observed_sm_count(),
+        }
+
     return {
         **host_metadata,
         "hardware": {
             **hardware,
+            "partitioning": partitioning,
             "cuda": {
                 **hardware["cuda"],
                 "torch_build_version": _torch_cuda_version(),

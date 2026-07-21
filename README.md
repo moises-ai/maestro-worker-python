@@ -135,29 +135,23 @@ docker-compose run --service-ports worker
 
 ### Developing this package
 
-Install [poetry](https://python-poetry.org/docs/#installing-with-the-official-installer)
-
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 You can run it in development mode:
 
 ```bash
-poetry install
-poetry run maestro-init
-```
-
-If you get a keyring error (Ubuntu), you may need to run the following:
-```bash
-export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
+uv sync
+uv run maestro-init
 ```
 
 To bump the package version:
 
 ```bash
-poetry version (major|minor|patch)
+uv version --bump patch
 ```
 
 Running tests:
 
 ```bash
-poetry run python -m pytest
+uv run pytest
 ```

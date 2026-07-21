@@ -1,5 +1,6 @@
 import csv
 import os
+import re
 import subprocess
 import sys
 from functools import lru_cache
@@ -76,10 +77,17 @@ def _partitioning_metadata() -> dict[str, Any] | None:
     return None
 
 
-def _cuda_version() -> str | None:
+def _driver_supported_cuda_version() -> str | None:
+    """Latest CUDA version supported by the host driver, as reported by nvidia-smi."""
+    output = _run_nvidia_smi() or ""
+    match = re.search(r"CUDA Version:\s*([0-9]+(?:\.[0-9]+)*)", output)
+    return match.group(1) if match else None
+
+
+def _torch_cuda_version() -> str | None:
+    """CUDA toolkit version used to build an already-imported torch module."""
     torch = sys.modules.get("torch")
-    torch_version = getattr(getattr(torch, "version", None), "cuda", None)
-    return torch_version or os.getenv("CUDA_VERSION")
+    return getattr(getattr(torch, "version", None), "cuda", None)
 
 
 def _worker_version() -> str:
@@ -89,12 +97,15 @@ def _worker_version() -> str:
         return "unknown"
 
 
-def collect_health_metadata() -> dict[str, Any]:
-    """Collect stable runtime metadata without making health depend on a GPU."""
+def _collect_host_metadata() -> dict[str, Any]:
+    """Collect stable host/container metadata without making health depend on a GPU."""
     return {
         "worker_version": _worker_version(),
         "hardware": {
-            "cuda_version": _cuda_version(),
+            "cuda": {
+                "driver_supported_version": _driver_supported_cuda_version(),
+                "container_version": os.getenv("CUDA_VERSION"),
+            },
             "gpus": _gpu_metadata(),
             "partitioning": _partitioning_metadata(),
         },
@@ -102,6 +113,29 @@ def collect_health_metadata() -> dict[str, Any]:
 
 
 @lru_cache(maxsize=1)
+def _get_host_metadata() -> dict[str, Any]:
+    return _collect_host_metadata()
+
+
+def _with_process_metadata(host_metadata: dict[str, Any]) -> dict[str, Any]:
+    hardware = host_metadata["hardware"]
+    return {
+        **host_metadata,
+        "hardware": {
+            **hardware,
+            "cuda": {
+                **hardware["cuda"],
+                "torch_build_version": _torch_cuda_version(),
+            },
+        },
+    }
+
+
+def collect_health_metadata() -> dict[str, Any]:
+    """Collect fresh host and process metadata."""
+    return _with_process_metadata(_collect_host_metadata())
+
+
 def get_health_metadata() -> dict[str, Any]:
-    """Return process-lifetime metadata; hardware does not change at runtime."""
-    return collect_health_metadata()
+    """Return cached host metadata plus current process-local metadata."""
+    return _with_process_metadata(_get_host_metadata())

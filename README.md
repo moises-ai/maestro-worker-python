@@ -27,8 +27,17 @@ This will create a starter Maestro worker project, including:
   - A `.gitignore` and `.dockerignore`
   - A `docker-compose.yaml` file
   - A `Dockerfile`
-  - A `requirements.txt` file including this package
+  - A `pyproject.toml` pinned to the installed Maestro worker version
   - A `worker.py` with a worker example
+
+Install the worker dependencies and create its `uv.lock`:
+
+```bash
+cd <worker-folder>
+uv sync
+```
+
+Commit the generated `uv.lock` with the worker project.
 
 ## Testing your worker
 
@@ -37,7 +46,7 @@ This will create a starter Maestro worker project, including:
 Run the CLI passing your worker file as the first param, then, any parameters exposed by your class. In this example, `input_1` will be sent to the worker, with the value `Hello`.
 
 ```bash
-maestro-cli ./worker.py --input_1=Hello
+uv run maestro-cli ./worker.py --input_1=Hello
 ```
 
 ### Using `maestro-server`:
@@ -45,13 +54,13 @@ maestro-cli ./worker.py --input_1=Hello
 Run the maestro server with the path to your worker. To see all options, use `maestro-server --help`
 
 ```bash
-maestro-server --worker=./worker.py
+uv run maestro-server --worker=./worker.py
 ```
 
 Installed worker adapters can also be loaded by module name:
 
 ```bash
-maestro-server --worker=my_package.worker
+uv run maestro-server --worker=my_package.worker
 ```
 
 Send a request to the server inference endpoint:

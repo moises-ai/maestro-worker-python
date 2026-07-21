@@ -1,1 +1,0 @@
-git+https://github.com/moises-ai/maestro-worker-python.git@4.0.0

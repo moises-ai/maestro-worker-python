@@ -1,0 +1,8 @@
+[project]
+name = "maestro-worker"
+version = "0.1.0"
+description = "A Maestro inference worker"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+  "maestro-worker-python @ https://github.com/moises-ai/maestro-worker-python/archive/refs/tags/MAESTRO_WORKER_PYTHON_VERSION.tar.gz",
+]

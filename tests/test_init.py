@@ -57,6 +57,7 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     compose = (target / "docker-compose.yaml").read_text()
     assert not compose.startswith("version:")
     assert "build:\n      context: .\n      args:\n        - BASE_IMAGE" in compose
+    assert "WORKER_VERSION: dev" in compose
 
     readme = (target / "README.md").read_text()
     assert "## PyTorch workers" in readme

@@ -42,6 +42,7 @@ def nvml_host(monkeypatch):
     )
     monkeypatch.delenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", raising=False)
     monkeypatch.delenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT", raising=False)
+    monkeypatch.delenv("WORKER_VERSION", raising=False)
     monkeypatch.delitem(sys.modules, "torch", raising=False)
     return lifecycle
 
@@ -88,13 +89,13 @@ def test_collect_health_metadata_reports_nvml_gpu_and_visible_mig(
             ),
         }[device],
     )
-    monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
+    monkeypatch.setenv("WORKER_VERSION", "git-abc123")
     monkeypatch.setitem(
         sys.modules, "torch", SimpleNamespace(version=SimpleNamespace(cuda="12.4"))
     )
 
     assert health.collect_health_metadata() == {
-        "worker_version": "4.2.0",
+        "worker_version": "git-abc123",
         "hardware": {
             "nvidia_driver_version": "610.12",
             "cuda": {
@@ -273,10 +274,8 @@ def test_collect_health_metadata_degrades_without_nvidia(monkeypatch, nvml_host)
 
     monkeypatch.setattr(health.pynvml, "nvmlInit", init)
     monkeypatch.setattr(health, "_run_nvidia_smi", lambda *_args: None)
-    monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
-
     assert health.collect_health_metadata() == {
-        "worker_version": "4.2.0",
+        "worker_version": None,
         "hardware": {
             "nvidia_driver_version": None,
             "cuda": {
@@ -337,7 +336,6 @@ def test_cached_health_refreshes_torch_metadata_without_reprobing_host(
     monkeypatch, nvml_host
 ):
     health._get_host_metadata.cache_clear()
-    monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
     monkeypatch.setenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", "50")
 
     first = health.get_health_metadata()

@@ -74,8 +74,10 @@ curl --request POST --url http://localhost:8000/inference  --header 'Content-Typ
     --data '{"input_1": "Hello"}'
 ```
 
-The `/health` endpoint reports the Maestro worker package version and available
-GPU metadata in addition to `ok`. `nvidia_driver_version` is the host driver,
+The `/health` endpoint reports the worker artifact version supplied through
+`WORKER_VERSION` and available GPU metadata in addition to `ok`. Deployments
+should set it to the exact worker image tag; it is `null` when unset.
+`nvidia_driver_version` is the host driver,
 `driver_supported_version` is the newest CUDA version it supports, and
 `torch_build_version` is the toolkit version used to build an already-imported
 PyTorch. NVIDIA host probing uses NVML and is best-effort, so CPU workers return

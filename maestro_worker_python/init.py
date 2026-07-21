@@ -1,8 +1,7 @@
-import shutil
 import argparse
-import os
-import pathlib
 import logging
+import pathlib
+import shutil
 
 
 def main():
@@ -13,24 +12,16 @@ def main():
 
     args = parser.parse_args().__dict__
 
-    dir = pathlib.Path(__file__).parent.resolve()
-    print(r"""
-___  ___                _             
-|  \/  |               | |            
-| .  . | __ _  ___  ___| |_ _ __ ___  
-| |\/| |/ _` |/ _ \/ __| __| '__/ _ \ 
+    template_dir = pathlib.Path(__file__).parent.resolve() / "data"
+    print(r"""___  ___                _
+|  \/  |               | |
+| .  . | __ _  ___  ___| |_ _ __ ___
+| |\/| |/ _` |/ _ \/ __| __| '__/ _ \
 | |  | | (_| |  __/\__ \ |_| | | (_) |
-\_|  |_/\__,_|\___||___/\__|_|  \___/ 
-                                                                          
+\_|  |_/\__,_|\___||___/\__|_|  \___/
+
 """)
-    logging.info(f"Initializing Maestro worker on folder: {args.get('folder')}")
-    shutil.copy(f"{dir}/data/worker.py", f"{args.get('folder')}/worker.py")
-    shutil.copy(f"{dir}/data/requirements.txt", f"{args.get('folder')}/requirements.txt")
-    shutil.copy(f"{dir}/data/docker-compose.yaml", f"{args.get('folder')}/docker-compose.yaml")
-    shutil.copy(f"{dir}/data/Dockerfile", f"{args.get('folder')}/Dockerfile")
-    os.makedirs(f"{args.get('folder')}/models", exist_ok=True)
-    shutil.copy(f"{dir}/data/models/model.th", f"{args.get('folder')}/models/model.th")
-    
-
-
-
+    target_dir = pathlib.Path(args.get("folder"))
+    logging.info(f"Initializing Maestro worker on folder: {target_dir}")
+    target_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(template_dir, target_dir, dirs_exist_ok=True)

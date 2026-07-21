@@ -1,0 +1,17 @@
+# Test files
+tests/
+pytest.ini
+uploads/
+
+# Development files
+.venv/
+.git/
+.github/
+.cursor/
+.vscode/
+__pycache__/
+*.py[cod]
+
+# Logs and temp files
+*.log
+models/xet/logs/

@@ -21,7 +21,7 @@ jobs:
       - name: Install ffmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install --yes ffmpeg
+          sudo apt-get install --yes --no-install-recommends ffmpeg
       - name: Install dependencies
         run: uv sync --locked --all-groups
       - name: Lint

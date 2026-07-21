@@ -41,6 +41,7 @@ sentry_sdk.init(
     before_send_transaction=filter_transactions,
 )
 
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Prime the cache before readiness probes start hitting /health.
@@ -88,9 +89,9 @@ lock = asyncio.Lock()
 @app.exception_handler(500)
 async def internal_exception_handler(request: Request, exc: Exception):
     global error_counter
-    tb = ''.join(traceback.format_exception(None, exc, exc.__traceback__))
+    tb = "".join(traceback.format_exception(None, exc, exc.__traceback__))
     try:
-        return JSONResponse(status_code=500, content=jsonable_encoder({"error":  tb}))
+        return JSONResponse(status_code=500, content=jsonable_encoder({"error": tb}))
     finally:
         if error_counter > 10:
             logging.error("Too many consecutive errors, shutting down worker")
@@ -102,7 +103,7 @@ async def internal_exception_handler(request: Request, exc: Exception):
 
 @app.exception_handler(ValidationError)
 async def validation_error_handler(request: Request, exc: ValidationError):
-    return JSONResponse(status_code=400, content=jsonable_encoder({"error":  exc.reason}))
+    return JSONResponse(status_code=400, content=jsonable_encoder({"error": exc.reason}))
 
 
 @app.exception_handler(pydantic.ValidationError)

@@ -42,13 +42,8 @@ def _partitioning_metadata(
         if percentage is not None and 0 < percentage <= 100:
             configured_active_thread_percentage = percentage
 
-    configured_pinned_device_memory_limit = (
-        os.getenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT") or None
-    )
-    if (
-        configured_active_thread_percentage is None
-        and configured_pinned_device_memory_limit is None
-    ):
+    configured_pinned_device_memory_limit = os.getenv("CUDA_MPS_PINNED_DEVICE_MEM_LIMIT") or None
+    if configured_active_thread_percentage is None and configured_pinned_device_memory_limit is None:
         return None
 
     return {
@@ -115,9 +110,7 @@ def _nvml_device_identity(device: Any) -> str:
         return repr(device)
 
 
-def _nvml_gpu_metadata() -> tuple[
-    list[dict[str, str | None]], list[dict[str, int | None]]
-]:
+def _nvml_gpu_metadata() -> tuple[list[dict[str, str | None]], list[dict[str, int | None]]]:
     """Collect visible GPUs and active MIG partitions."""
     try:
         device_count = pynvml.nvmlDeviceGetCount()
@@ -151,9 +144,7 @@ def _nvml_gpu_metadata() -> tuple[
             if identity in seen_mig_devices:
                 continue
             seen_mig_devices.add(identity)
-            visible_mig_partitions.append(
-                _nvml_mig_partition_metadata(mig_device)
-            )
+            visible_mig_partitions.append(_nvml_mig_partition_metadata(mig_device))
 
     return gpus, visible_mig_partitions
 

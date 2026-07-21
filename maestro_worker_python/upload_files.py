@@ -24,11 +24,16 @@ def upload_files(upload_files: list[UploadFile]):
     threads_upload = []
     did_raise_exception = threading.Event()
     for file_ in upload_files:
-        t = threading.Thread(target=_upload, args=(
-            file_, did_raise_exception,))
+        t = threading.Thread(
+            target=_upload,
+            args=(
+                file_,
+                did_raise_exception,
+            ),
+        )
         threads_upload.append(t)
         t.start()
-    
+
     for t in threads_upload:
         t.join()
 
@@ -40,7 +45,9 @@ def _upload(upload_file: UploadFile, did_raise_exception):
     logging.info(f"Uploading:{upload_file.file_path}")
     try:
         with open(upload_file.file_path, "rb") as data:
-            response = requests.put(upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type}, timeout=300)
+            response = requests.put(
+                upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type}, timeout=300
+            )
             response.raise_for_status()
             logging.info(f"Uploaded {upload_file.file_path}")
     except Exception as e:

@@ -1,4 +1,3 @@
-
 from pydantic_settings import BaseSettings
 
 
@@ -9,6 +8,7 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     sentry_traces_sample_rate: float = 1.0
     sentry_errors_sample_rate: float = 1.0
-    environment: str = 'production'
+    environment: str = "production"
+
 
 settings = Settings()

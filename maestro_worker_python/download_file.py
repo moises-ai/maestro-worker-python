@@ -25,7 +25,7 @@ def download_file(url: str, filename: str | None = None) -> str:
             file_name = temporary_file.name
     else:
         file_name = filename
-    with open(file_name, 'wb') as file:
+    with open(file_name, "wb") as file:
         file.write(response.content)
 
     logging.info(f"Downloaded input to {file_name}")

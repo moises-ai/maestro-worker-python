@@ -40,11 +40,7 @@ def convert_files(convert_files: list[FileToConvert]) -> None:
         for convert_file in convert_files:
             if convert_file.output_file_path is None:
                 raise ValueError("output_file_path is required when using convert_files")
-            target_function = (
-                _convert_to_m4a
-                if convert_file.file_format == "m4a"
-                else _convert_to_wav
-            )
+            target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
             futures.append(
                 executor.submit(
                     target_function,
@@ -70,11 +66,7 @@ def convert_files_manager(*convert_files: FileToConvert) -> Iterator[None | str 
             for convert_file in convert_files:
                 file_format = ".m4a" if convert_file.file_format == "m4a" else ".wav"
                 filename = tempfile.NamedTemporaryFile(suffix=file_format)
-                target_function = (
-                    _convert_to_m4a
-                    if convert_file.file_format == "m4a"
-                    else _convert_to_wav
-                )
+                target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
                 thread_list.append(
                     executor.submit(
                         target_function,
@@ -181,9 +173,7 @@ def _run_subprocess(command: list[str]) -> None:
                 f"Could not convert because the file is invalid, ffmpeg stderr: {exc.stderr.decode()}"
             ) from exc
 
-        raise FileConversionError(
-            f"Fatal error during conversion, ffmpeg stderr: {exc.stderr.decode()}"
-        ) from exc
+        raise FileConversionError(f"Fatal error during conversion, ffmpeg stderr: {exc.stderr.decode()}") from exc
     else:
         if process.stderr:
             logger.warning(

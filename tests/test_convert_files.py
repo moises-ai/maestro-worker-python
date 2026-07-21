@@ -56,9 +56,7 @@ def test_convert_files_requires_output_path():
 
 
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
-def test_should_raise_validation_error_if_audio_file_is_invalid(
-    invalid_audio_file, file_format
-):
+def test_should_raise_validation_error_if_audio_file_is_invalid(invalid_audio_file, file_format):
     with pytest.raises(ValidationError) as exc:
         convert_files(
             [
@@ -74,9 +72,7 @@ def test_should_raise_validation_error_if_audio_file_is_invalid(
 
 
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
-def test_should_raise_validation_error_if_audio_file_is_corrupt(
-    corrupt_audio_file, file_format
-):
+def test_should_raise_validation_error_if_audio_file_is_corrupt(corrupt_audio_file, file_format):
     with pytest.raises(ValidationError) as exc:
         convert_files(
             [
@@ -201,17 +197,21 @@ def _get_hash(file_name, sample_rate):
         str(file_name),
     ]
     if sample_rate:
-        command.extend([
-            "-ar",
-            str(sample_rate),
-        ])
-    command.extend([
-        "-map",
-        "0",
-        "-f",
-        "hash",
-        "-",
-    ])
+        command.extend(
+            [
+                "-ar",
+                str(sample_rate),
+            ]
+        )
+    command.extend(
+        [
+            "-map",
+            "0",
+            "-f",
+            "hash",
+            "-",
+        ]
+    )
 
     process = subprocess.run(command, shell=False, capture_output=True, check=True)
     return process.stdout.split(b"=")[1].strip()

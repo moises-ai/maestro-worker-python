@@ -28,6 +28,7 @@ This will create a starter Maestro worker project, including:
   - A `docker-compose.yaml` file
   - A `Dockerfile`
   - A `pyproject.toml` pinned to the installed Maestro worker version
+  - A `README.md` covering local, Docker, and PyTorch development
   - A `worker.py` with a worker example
 
 Install the worker dependencies and create its `uv.lock`:
@@ -38,6 +39,9 @@ uv sync
 ```
 
 Commit the generated `uv.lock` with the worker project.
+
+The generated README explains how to declare a specific PyTorch version for
+local development and select a matching PyTorch base image for container tests.
 
 ## Testing your worker
 
@@ -155,13 +159,13 @@ get_duration('./myfile.mp3')
 
 ### Build image
 ```bash
-docker-compose build
+docker compose build
 ```
 
 ### Run the server
 
 ```bash
-docker-compose run --service-ports worker
+docker compose run --service-ports worker
 ```
 
 ### Developing this package

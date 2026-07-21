@@ -1,7 +1,9 @@
-version: "3.9"
 services:
   worker:
-    build: .
+    build:
+      context: .
+      args:
+        - BASE_IMAGE
     command: maestro-server --worker /worker/worker.py --port 8000 --reload True
     ports:
       - "8000:8000"

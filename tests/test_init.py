@@ -13,6 +13,7 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     init.main()
 
     assert (target / "worker.py").is_file()
+    assert (target / "README.md").is_file()
     assert (target / "pyproject.toml").is_file()
     assert not (target / "requirements.txt").exists()
     assert not (target / "uv.lock").exists()
@@ -32,7 +33,8 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     )
 
     dockerfile = (target / "Dockerfile").read_text()
-    assert "FROM python:3.12-slim-trixie" in dockerfile
+    assert "ARG BASE_IMAGE=python:3.12-slim-trixie" in dockerfile
+    assert "FROM ${BASE_IMAGE}" in dockerfile
     assert (
         "COPY --from=ghcr.io/astral-sh/uv:0.11.25 /uv /uvx /bin/"
         in dockerfile
@@ -40,8 +42,19 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     assert "UV_LINK_MODE=copy" in dockerfile
     assert "COPY pyproject.toml uv.lock ./" in dockerfile
     assert "--mount=type=cache,target=/root/.cache/uv" in dockerfile
-    assert "uv sync --locked --no-dev" in dockerfile
-    assert "requirements.txt" not in dockerfile
+    assert "uv export --quiet --locked --no-dev --no-emit-project" in dockerfile
+    assert "uv pip install --system --no-deps --require-hashes" in dockerfile
+    assert "UV_PROJECT_ENVIRONMENT" not in dockerfile
+    assert "COPY requirements.txt" not in dockerfile
+
+    compose = (target / "docker-compose.yaml").read_text()
+    assert not compose.startswith("version:")
+    assert "build:\n      context: .\n      args:\n        - BASE_IMAGE" in compose
+
+    readme = (target / "README.md").read_text()
+    assert "## PyTorch workers" in readme
+    assert "torch==<version>" in readme
+    assert "BASE_IMAGE" in readme
 
 
 def test_init_allows_identical_rerun_and_preserves_unrelated_files(

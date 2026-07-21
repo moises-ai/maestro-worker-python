@@ -14,7 +14,7 @@ def main():
     args = parser.parse_args().__dict__
 
     dir = pathlib.Path(__file__).parent.resolve()
-    print("""\
+    print(r"""
 ___  ___                _             
 |  \/  |               | |            
 | .  . | __ _  ___  ___| |_ _ __ ___  
@@ -28,7 +28,7 @@ ___  ___                _
     shutil.copy(f"{dir}/data/requirements.txt", f"{args.get('folder')}/requirements.txt")
     shutil.copy(f"{dir}/data/docker-compose.yaml", f"{args.get('folder')}/docker-compose.yaml")
     shutil.copy(f"{dir}/data/Dockerfile", f"{args.get('folder')}/Dockerfile")
-    os.mkdir(f"{args.get('folder')}/models")
+    os.makedirs(f"{args.get('folder')}/models", exist_ok=True)
     shutil.copy(f"{dir}/data/models/model.th", f"{args.get('folder')}/models/model.th")
     
 

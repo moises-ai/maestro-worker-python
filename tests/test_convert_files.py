@@ -12,7 +12,7 @@ from maestro_worker_python.convert_files import (
 )
 from maestro_worker_python.response import ValidationError
 
-TEST_PATH = Path(__file__).resolve().parent
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
 @pytest.fixture(scope="session")
@@ -35,7 +35,7 @@ def test_should_re_raise_exceptions_in_thread(invalid_audio_file, file_format):
         convert_files(
             [
                 FileToConvert(
-                    input_file_path=TEST_PATH / "foobar.mp3",
+                    input_file_path=FIXTURES / "foobar.mp3",
                     output_file_path=f"{invalid_audio_file}.wav",
                     file_format=file_format,
                 )
@@ -48,7 +48,7 @@ def test_convert_files_requires_output_path():
         convert_files(
             [
                 FileToConvert(
-                    input_file_path=TEST_PATH / "silent.ogg",
+                    input_file_path=FIXTURES / "silent.ogg",
                     file_format="wav",
                 )
             ]
@@ -90,8 +90,8 @@ def test_should_raise_validation_error_if_audio_file_is_corrupt(corrupt_audio_fi
 @pytest.mark.parametrize("file_format", ["m4a", "wav"])
 def test_should_raise_validation_error_if_source_has_no_audio(file_format, caplog):
     input_file_path, output_file_path = (
-        TEST_PATH / "video-no-audio.mp4",
-        TEST_PATH / "output.wav",
+        FIXTURES / "video-no-audio.mp4",
+        FIXTURES / "output.wav",
     )
     with pytest.raises(ValidationError) as exc:
         convert_files(
@@ -119,8 +119,8 @@ def test_should_raise_validation_error_if_source_has_no_audio(file_format, caplo
 )
 def test_should_convert_valid_wav_audio_file(input_name, output_name, format, sample_rate):
     input_file_path, output_file_path = (
-        TEST_PATH / input_name,
-        TEST_PATH / output_name,
+        FIXTURES / input_name,
+        FIXTURES / output_name,
     )
     convert_files(
         [
@@ -148,8 +148,8 @@ def test_should_convert_valid_wav_audio_file(input_name, output_name, format, sa
 )
 def test_should_convert_valid_m4a_audio_file(input_name, output_name, format, sample_rate):
     input_file_path, output_file_path = (
-        TEST_PATH / input_name,
-        TEST_PATH / output_name,
+        FIXTURES / input_name,
+        FIXTURES / output_name,
     )
     convert_files(
         [
@@ -166,8 +166,8 @@ def test_should_convert_valid_m4a_audio_file(input_name, output_name, format, sa
 
 def test_should_convert_multiple_valid_audio_files_and_delete_after_context():
     input_file_path, output_file_path = (
-        TEST_PATH / "silent.ogg",
-        TEST_PATH / "silent.wav",
+        FIXTURES / "silent.ogg",
+        FIXTURES / "silent.wav",
     )
     converted_files_list = []
     with convert_files_manager(

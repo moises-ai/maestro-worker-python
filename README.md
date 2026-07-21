@@ -74,6 +74,14 @@ curl --request POST --url http://localhost:8000/inference  --header 'Content-Typ
     --data '{"input_1": "Hello"}'
 ```
 
+Workers return a `WorkerResponse` with three fields:
+
+- `billable_seconds`: the billable duration as a number of seconds, including
+  fractional seconds when available, or `null` when it cannot be determined.
+- `stats`: numeric worker measurements. Use `duration` for total worker
+  processing time; additional keys may report individual phases.
+- `result`: the worker-specific JSON object.
+
 The `/health` endpoint reports the worker artifact version supplied through
 `WORKER_VERSION` and available GPU metadata in addition to `ok`. Deployments
 should set it to the exact worker image tag; it is `null` when unset.
@@ -157,6 +165,8 @@ from maestro_worker_python.get_duration import get_duration
 get_duration('./myfile.mp3')
 ```
 
+The returned `float` preserves fractional seconds reported by `ffprobe`.
+
 ## Using Docker Compose
 
 ### Build image
@@ -187,8 +197,11 @@ To bump the package version:
 uv version --bump patch
 ```
 
-Running tests:
+Run the quality checks:
 
 ```bash
 uv run pytest
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
 ```

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
 import tempfile
 import threading
-import concurrent.futures
 from dataclasses import dataclass
 from os.path import join
-from typing import List, Any
+from typing import Any
 
 import requests
 
@@ -19,16 +19,21 @@ class UploadFile:
     signed_url: str
 
 
-def upload_files(upload_files: List[UploadFile]):
+def upload_files(upload_files: list[UploadFile]):
     logging.info(f"Uploading {len(upload_files)} files")
     threads_upload = []
     did_raise_exception = threading.Event()
     for file_ in upload_files:
-        t = threading.Thread(target=_upload, args=(
-            file_, did_raise_exception,))
+        t = threading.Thread(
+            target=_upload,
+            args=(
+                file_,
+                did_raise_exception,
+            ),
+        )
         threads_upload.append(t)
         t.start()
-    
+
     for t in threads_upload:
         t.join()
 
@@ -40,7 +45,9 @@ def _upload(upload_file: UploadFile, did_raise_exception):
     logging.info(f"Uploading:{upload_file.file_path}")
     try:
         with open(upload_file.file_path, "rb") as data:
-            response = requests.put(upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type}, timeout=300)
+            response = requests.put(
+                upload_file.signed_url, data=data, headers={"Content-Type": upload_file.file_type}, timeout=300
+            )
             response.raise_for_status()
             logging.info(f"Uploaded {upload_file.file_path}")
     except Exception as e:
@@ -87,23 +94,32 @@ class AsyncUploader:
 
     def __init__(self, max_workers: int | None = None):
         self._max_workers = max_workers
-        self._exectuor = None
-        self._futures = []
+        self._executor: concurrent.futures.ThreadPoolExecutor | None = None
+        self._futures: list[concurrent.futures.Future[None]] = []
 
     def __enter__(self):
-        self._exectuor = concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers)
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=self._max_workers)
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self._exectuor.shutdown()
+        if self._executor is None:
+            raise RuntimeError("AsyncUploader must be entered before it can be exited")
+        self._executor.shutdown()
         for future in self._futures:
-            if future.exception():
-                raise future.exception()
+            exception = future.exception()
+            if exception is not None:
+                raise exception
 
-    def upload_file(self, file_path: str, file_type: str, signed_url: str | None) -> concurrent.futures.Future:
-        self._futures.append(self._exectuor.submit(upload_files, [UploadFile(file_path, file_type, signed_url)]))
-        return self._futures[-1]
+    def upload_file(self, file_path: str, file_type: str, signed_url: str) -> concurrent.futures.Future[None]:
+        if self._executor is None:
+            raise RuntimeError("AsyncUploader must be used as a context manager")
+        future = self._executor.submit(upload_files, [UploadFile(file_path, file_type, signed_url)])
+        self._futures.append(future)
+        return future
 
-    def upload_json(self, data: Any, signed_url: str | None) -> concurrent.futures.Future:
-        self._futures.append(self._exectuor.submit(upload_json_data, [UploadJsonData(data, signed_url)]))
-        return self._futures[-1]
+    def upload_json(self, data: Any, signed_url: str) -> concurrent.futures.Future[None]:
+        if self._executor is None:
+            raise RuntimeError("AsyncUploader must be used as a context manager")
+        future = self._executor.submit(upload_json_data, [UploadJsonData(data, signed_url)])
+        self._futures.append(future)
+        return future

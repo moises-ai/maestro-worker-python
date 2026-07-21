@@ -4,9 +4,10 @@ import concurrent.futures
 import logging
 import subprocess
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import List
+from os import PathLike
 
 from .response import ValidationError
 
@@ -14,30 +15,32 @@ logger = logging.getLogger(__name__)
 
 
 class FileConversionError(Exception):
-    def __init__(self, message):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
         self.message = message
+
+
+StrPath = str | PathLike[str]
 
 
 @dataclass
 class FileToConvert:
-    input_file_path: str
+    input_file_path: StrPath
     file_format: str
-    output_file_path: str | None = None
+    output_file_path: StrPath | None = None
     max_duration: int = 1200
     sample_rate: int | None = 44100
 
 
-def convert_files(convert_files: List[FileToConvert]):
+def convert_files(convert_files: list[FileToConvert]) -> None:
     logger.info(f"Converting {len(convert_files)} files")
 
     futures = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for convert_file in convert_files:
-            target_function = (
-                _convert_to_m4a
-                if convert_file.file_format == "m4a"
-                else _convert_to_wav
-            )
+            if convert_file.output_file_path is None:
+                raise ValueError("output_file_path is required when using convert_files")
+            target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
             futures.append(
                 executor.submit(
                     target_function,
@@ -55,7 +58,7 @@ def convert_files(convert_files: List[FileToConvert]):
 
 
 @contextmanager
-def convert_files_manager(*convert_files: FileToConvert) -> None | str | list[str]:
+def convert_files_manager(*convert_files: FileToConvert) -> Iterator[None | str | list[str]]:
     try:
         thread_list = []
         list_objects = []
@@ -63,11 +66,7 @@ def convert_files_manager(*convert_files: FileToConvert) -> None | str | list[st
             for convert_file in convert_files:
                 file_format = ".m4a" if convert_file.file_format == "m4a" else ".wav"
                 filename = tempfile.NamedTemporaryFile(suffix=file_format)
-                target_function = (
-                    _convert_to_m4a
-                    if convert_file.file_format == "m4a"
-                    else _convert_to_wav
-                )
+                target_function = _convert_to_m4a if convert_file.file_format == "m4a" else _convert_to_wav
                 thread_list.append(
                     executor.submit(
                         target_function,
@@ -92,7 +91,12 @@ def convert_files_manager(*convert_files: FileToConvert) -> None | str | list[st
             obj.close()
 
 
-def _convert_to_wav(input_file_path: str, output_file_path: str, max_duration: int, sample_rate: int | None = 44100):
+def _convert_to_wav(
+    input_file_path: StrPath,
+    output_file_path: StrPath,
+    max_duration: int,
+    sample_rate: int | None = 44100,
+) -> None:
     command_list = [
         "ffmpeg",
         "-y",
@@ -113,7 +117,12 @@ def _convert_to_wav(input_file_path: str, output_file_path: str, max_duration: i
     _run_subprocess(command_list)
 
 
-def _convert_to_m4a(input_file_path: str, output_file_path: str, max_duration: int, sample_rate: int | None = 44100):
+def _convert_to_m4a(
+    input_file_path: StrPath,
+    output_file_path: StrPath,
+    max_duration: int,
+    sample_rate: int | None = 44100,
+) -> None:
     command_list = [
         "ffmpeg",
         "-y",
@@ -140,7 +149,7 @@ def _convert_to_m4a(input_file_path: str, output_file_path: str, max_duration: i
     _run_subprocess(command_list)
 
 
-def _run_subprocess(command):
+def _run_subprocess(command: list[str]) -> None:
     try:
         process = subprocess.run(command, shell=False, capture_output=True, check=True)
     except subprocess.CalledProcessError as exc:
@@ -164,9 +173,7 @@ def _run_subprocess(command):
                 f"Could not convert because the file is invalid, ffmpeg stderr: {exc.stderr.decode()}"
             ) from exc
 
-        raise FileConversionError(
-            f"Fatal error during conversion, ffmpeg stderr: {exc.stderr.decode()}"
-        ) from exc
+        raise FileConversionError(f"Fatal error during conversion, ffmpeg stderr: {exc.stderr.decode()}") from exc
     else:
         if process.stderr:
             logger.warning(

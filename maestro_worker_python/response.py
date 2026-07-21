@@ -1,10 +1,12 @@
-from typing import Dict, Optional
+from typing import Any
+
 from pydantic import BaseModel
 
+
 class WorkerResponse(BaseModel):
-    billable_seconds: Optional[int] = ...
-    stats: Dict[str, float]
-    result: Dict
+    billable_seconds: float | None
+    stats: dict[str, float]
+    result: dict[str, Any]
 
 
 class ValidationError(Exception):

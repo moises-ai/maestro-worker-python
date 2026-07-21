@@ -1,9 +1,11 @@
 import os
 from glob import glob
+
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 
 app = FastAPI()
+
 
 @app.put("/upload-file/{filename}")
 async def put_file(filename: str, request: Request):

@@ -1,5 +1,7 @@
 import os
+
 import pytest
+
 from maestro_worker_python.download_file import download_file, download_files_manager
 from maestro_worker_python.response import ValidationError
 
@@ -29,10 +31,11 @@ def test_download_files_manager(httpserver):
 
     files_content = []
     with download_files_manager(url, url) as downloaded_files:
+        assert isinstance(downloaded_files, list)
         for file in downloaded_files:
             with open(file) as f:
                 files_content.append(f.read() == "hello")
-    assert all(files_content) == True
+    assert all(files_content)
 
 
 def test_download_files_manager_delete(httpserver):
@@ -41,7 +44,8 @@ def test_download_files_manager_delete(httpserver):
 
     files_path_exists = []
     with download_files_manager(url, url) as downloaded_files:
+        assert isinstance(downloaded_files, list)
         files_path = downloaded_files
     for path in files_path:
         files_path_exists.append(os.path.exists(path))
-    assert all(files_path_exists) == False
+    assert not any(files_path_exists)

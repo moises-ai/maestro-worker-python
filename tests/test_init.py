@@ -3,6 +3,7 @@ import sys
 import pytest
 
 from maestro_worker_python import init
+from maestro_worker_python.load_worker import load_worker
 
 
 def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
@@ -27,25 +28,18 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     pyproject = (target / "pyproject.toml").read_text()
     assert (
         '"maestro-worker-python @ '
-        'https://github.com/moises-ai/maestro-worker-python/'
-        'archive/refs/tags/4.2.0.tar.gz"'
-        in pyproject
+        "https://github.com/moises-ai/maestro-worker-python/"
+        'archive/refs/tags/4.2.0.tar.gz"' in pyproject
     )
 
     dockerfile = (target / "Dockerfile").read_text()
     assert "ARG BASE_IMAGE=python:3.12-slim-trixie" in dockerfile
     assert "FROM ${BASE_IMAGE}" in dockerfile
-    assert (
-        "COPY --from=ghcr.io/astral-sh/uv:0.11.25 /uv /uvx /bin/"
-        in dockerfile
-    )
+    assert "COPY --from=ghcr.io/astral-sh/uv:0.11.25 /uv /uvx /bin/" in dockerfile
     assert "UV_LINK_MODE=copy" in dockerfile
     assert "COPY pyproject.toml uv.lock ./" in dockerfile
     assert "--mount=type=cache,target=/root/.cache/uv" in dockerfile
-    assert (
-        'PYTHON_BIN="$(uv python find --no-project --no-python-downloads)"'
-        in dockerfile
-    )
+    assert 'PYTHON_BIN="$(uv python find --no-project --no-python-downloads)"' in dockerfile
     assert 'UV_PROJECT_ENVIRONMENT="$("$PYTHON_BIN" -c' in dockerfile
     assert 'sysconfig.get_config_var("prefix")' in dockerfile
     assert "uv sync --locked --no-dev --no-install-project --inexact" in dockerfile
@@ -65,10 +59,12 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     assert "BASE_IMAGE" in readme
     assert "must provide a Python interpreter" in readme
 
+    generated_worker = load_worker(str(target / "worker.py"))
+    response = generated_worker.MoisesWorker().inference({"input_1": "Hello"})
+    assert response.result == {"output": "Hello World"}
 
-def test_init_allows_identical_rerun_and_preserves_unrelated_files(
-    tmp_path, monkeypatch
-):
+
+def test_init_allows_identical_rerun_and_preserves_unrelated_files(tmp_path, monkeypatch):
     target = tmp_path / "existing-directory"
     target.mkdir()
     unrelated_file = target / "notes.txt"
@@ -82,9 +78,7 @@ def test_init_allows_identical_rerun_and_preserves_unrelated_files(
     assert unrelated_file.read_text() == "keep me"
 
 
-def test_init_aborts_before_overwriting_modified_scaffold_file(
-    tmp_path, monkeypatch, capsys
-):
+def test_init_aborts_before_overwriting_modified_scaffold_file(tmp_path, monkeypatch, capsys):
     target = tmp_path / "existing-worker"
     target.mkdir()
     worker = target / "worker.py"

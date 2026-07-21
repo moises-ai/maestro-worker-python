@@ -13,9 +13,7 @@ EXPECTED_SCRIPTS = {
 @pytest.mark.parametrize("name,value", EXPECTED_SCRIPTS.items())
 def test_console_script_is_registered(name, value):
     scripts = {
-        ep.name: ep
-        for ep in distribution("maestro-worker-python").entry_points
-        if ep.group == "console_scripts"
+        ep.name: ep for ep in distribution("maestro-worker-python").entry_points if ep.group == "console_scripts"
     }
     assert name in scripts
     assert scripts[name].value == value

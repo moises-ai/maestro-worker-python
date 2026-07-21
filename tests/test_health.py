@@ -6,81 +6,54 @@ import pytest
 from maestro_worker_python import health
 
 
-def test_nvml_driver_supported_cuda_version(monkeypatch):
-    calls = []
-
-    monkeypatch.setattr(health.pynvml, "nvmlInit", lambda: calls.append("init"))
+@pytest.fixture
+def nvml_host(monkeypatch):
+    lifecycle = []
+    monkeypatch.setattr(health.pynvml, "nvmlInit", lambda: lifecycle.append("init"))
     monkeypatch.setattr(
-        health.pynvml,
-        "nvmlSystemGetCudaDriverVersion_v2",
-        lambda: calls.append("query") or 13030,
+        health.pynvml, "nvmlShutdown", lambda: lifecycle.append("shutdown")
     )
-    monkeypatch.setattr(health.pynvml, "nvmlShutdown", lambda: calls.append("shutdown"))
-
-    assert health._nvml_driver_supported_cuda_version() == "13.3"
-    assert calls == ["init", "query", "shutdown"]
-
-
-def test_nvml_driver_supported_cuda_version_shuts_down_after_query_error(monkeypatch):
-    calls = []
-
-    def query():
-        calls.append("query")
-        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_UNKNOWN)
-
-    monkeypatch.setattr(health.pynvml, "nvmlInit", lambda: calls.append("init"))
-    monkeypatch.setattr(health.pynvml, "nvmlSystemGetCudaDriverVersion_v2", query)
-    monkeypatch.setattr(health.pynvml, "nvmlShutdown", lambda: calls.append("shutdown"))
-
-    assert health._nvml_driver_supported_cuda_version() is None
-    assert calls == ["init", "query", "shutdown"]
-
-
-def test_nvml_driver_supported_cuda_version_degrades_when_initialization_fails(
-    monkeypatch,
-):
-    def init():
-        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_LIBRARY_NOT_FOUND)
-
-    monkeypatch.setattr(health.pynvml, "nvmlInit", init)
+    monkeypatch.setattr(health.pynvml, "nvmlSystemGetDriverVersion", lambda: "610.12")
     monkeypatch.setattr(
-        health.pynvml,
-        "nvmlShutdown",
-        lambda: pytest.fail("NVML must not be shut down after failed initialization"),
+        health.pynvml, "nvmlSystemGetCudaDriverVersion_v2", lambda: 13030
     )
-
-    assert health._nvml_driver_supported_cuda_version() is None
-
-
-@pytest.mark.parametrize("label", ["CUDA Version", "CUDA UMD Version"])
-def test_driver_supported_cuda_version_falls_back_to_nvidia_smi(monkeypatch, label):
-    monkeypatch.setattr(health, "_nvml_driver_supported_cuda_version", lambda: None)
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetCount", lambda: 0)
     monkeypatch.setattr(
         health,
         "_run_nvidia_smi",
-        lambda *args: f"{label} : 13.3\n" if args == ("-q",) else None,
+        lambda *_args: pytest.fail("nvidia-smi fallback should not run"),
     )
+    monkeypatch.delenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", raising=False)
+    monkeypatch.delitem(sys.modules, "torch", raising=False)
+    return lifecycle
 
-    assert health._driver_supported_cuda_version() == "13.3"
 
+def test_collect_health_metadata_reports_nvml_gpu_and_visible_mig(
+    monkeypatch, nvml_host
+):
+    def mig_device(_device, index):
+        if index in {0, 2}:
+            return f"mig-{index}"
+        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_NOT_FOUND)
 
-def test_collect_health_metadata_reports_gpu_and_mig(monkeypatch):
-    def run_nvidia_smi(*args):
-        if args == (
-            "--query-gpu=name,driver_version,compute_cap",
-            "--format=csv,noheader,nounits",
-        ):
-            return "NVIDIA L4, 570.148.08, 8.9\n"
-        if args == ("-L",):
-            return (
-                "GPU 0: NVIDIA A100 (UUID: GPU-1)\n"
-                "  MIG 1g.10gb Device 0: (UUID: MIG-1)\n"
-                "  MIG 1g.10gb Device 1: (UUID: MIG-2)\n"
-            )
-        raise AssertionError(args)
-
-    monkeypatch.setattr(health, "_nvml_driver_supported_cuda_version", lambda: "13.3")
-    monkeypatch.setattr(health, "_run_nvidia_smi", run_nvidia_smi)
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetCount", lambda: 1)
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetHandleByIndex", lambda _index: "gpu-0"
+    )
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetName", lambda _device: "NVIDIA H100"
+    )
+    monkeypatch.setattr(
+        health.pynvml,
+        "nvmlDeviceGetCudaComputeCapability",
+        lambda _device: (9, 0),
+    )
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetMaxMigDeviceCount", lambda _device: 3
+    )
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetMigDeviceHandleByIndex", mig_device
+    )
     monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
     monkeypatch.setitem(
         sys.modules, "torch", SimpleNamespace(version=SimpleNamespace(cuda="12.4"))
@@ -89,35 +62,91 @@ def test_collect_health_metadata_reports_gpu_and_mig(monkeypatch):
     assert health.collect_health_metadata() == {
         "worker_version": "4.2.0",
         "hardware": {
+            "nvidia_driver_version": "610.12",
             "cuda": {
                 "driver_supported_version": "13.3",
                 "torch_build_version": "12.4",
             },
-            "gpus": [
-                {
-                    "model": "NVIDIA L4",
-                    "driver_version": "570.148.08",
-                    "sm_version": "sm_89",
-                }
-            ],
+            "gpus": [{"model": "NVIDIA H100", "sm_version": "sm_90"}],
             "partitioning": {
                 "method": "mig",
                 "visible_partition_count": 2,
             },
         },
     }
+    assert nvml_host == ["init", "shutdown"]
 
 
-def test_collect_health_metadata_degrades_without_nvidia(monkeypatch):
-    monkeypatch.setattr(health, "_nvml_driver_supported_cuda_version", lambda: None)
+@pytest.mark.parametrize("label", ["CUDA Version", "CUDA UMD Version"])
+def test_collect_health_metadata_falls_back_for_cuda_driver_version(
+    monkeypatch, nvml_host, label
+):
+    def cuda_driver_version():
+        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_FUNCTION_NOT_FOUND)
+
+    monkeypatch.setattr(
+        health.pynvml, "nvmlSystemGetCudaDriverVersion_v2", cuda_driver_version
+    )
+    monkeypatch.setattr(
+        health,
+        "_run_nvidia_smi",
+        lambda *args: f"{label} : 13.3\n" if args == ("-q",) else None,
+    )
+
+    metadata = health.collect_health_metadata()
+
+    assert metadata["hardware"]["nvidia_driver_version"] == "610.12"
+    assert metadata["hardware"]["cuda"] == {
+        "driver_supported_version": "13.3",
+        "torch_build_version": None,
+    }
+    assert nvml_host == ["init", "shutdown"]
+
+
+def test_collect_health_metadata_keeps_partial_nvml_results(monkeypatch, nvml_host):
+    def driver_version():
+        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_UNKNOWN)
+
+    def model(_device):
+        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_UNKNOWN)
+
+    def mig_count(_device):
+        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_NOT_SUPPORTED)
+
+    monkeypatch.setattr(health.pynvml, "nvmlSystemGetDriverVersion", driver_version)
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetCount", lambda: 1)
+    monkeypatch.setattr(
+        health.pynvml, "nvmlDeviceGetHandleByIndex", lambda _index: "gpu-0"
+    )
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetName", model)
+    monkeypatch.setattr(
+        health.pynvml,
+        "nvmlDeviceGetCudaComputeCapability",
+        lambda _device: (8, 9),
+    )
+    monkeypatch.setattr(health.pynvml, "nvmlDeviceGetMaxMigDeviceCount", mig_count)
+
+    metadata = health.collect_health_metadata()
+
+    assert metadata["hardware"]["nvidia_driver_version"] is None
+    assert metadata["hardware"]["cuda"]["driver_supported_version"] == "13.3"
+    assert metadata["hardware"]["gpus"] == [{"model": None, "sm_version": "sm_89"}]
+    assert metadata["hardware"]["partitioning"] is None
+    assert nvml_host == ["init", "shutdown"]
+
+
+def test_collect_health_metadata_degrades_without_nvidia(monkeypatch, nvml_host):
+    def init():
+        raise health.pynvml.NVMLError(health.pynvml.NVML_ERROR_LIBRARY_NOT_FOUND)
+
+    monkeypatch.setattr(health.pynvml, "nvmlInit", init)
     monkeypatch.setattr(health, "_run_nvidia_smi", lambda *_args: None)
     monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
-    monkeypatch.delenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", raising=False)
-    monkeypatch.delitem(sys.modules, "torch", raising=False)
 
     assert health.collect_health_metadata() == {
         "worker_version": "4.2.0",
         "hardware": {
+            "nvidia_driver_version": None,
             "cuda": {
                 "driver_supported_version": None,
                 "torch_build_version": None,
@@ -126,12 +155,10 @@ def test_collect_health_metadata_degrades_without_nvidia(monkeypatch):
             "partitioning": None,
         },
     }
+    assert nvml_host == []
 
 
-def test_collect_health_metadata_reports_detectable_mps_limit(monkeypatch):
-    monkeypatch.setattr(health, "_nvml_driver_supported_cuda_version", lambda: None)
-    monkeypatch.setattr(health, "_run_nvidia_smi", lambda *_args: "")
-    monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
+def test_collect_health_metadata_reports_detectable_mps_limit(monkeypatch, nvml_host):
     monkeypatch.setenv("CUDA_MPS_ACTIVE_THREAD_PERCENTAGE", "50")
 
     metadata = health.collect_health_metadata()
@@ -141,20 +168,14 @@ def test_collect_health_metadata_reports_detectable_mps_limit(monkeypatch):
         "active_thread_percentage": 50,
         "partition_count": None,
     }
+    assert nvml_host == ["init", "shutdown"]
 
 
-def test_cached_health_refreshes_torch_version_without_reprobing_host(monkeypatch):
-    calls = []
-
-    def run_nvidia_smi(*args):
-        calls.append(args)
-        return ""
-
+def test_cached_health_refreshes_torch_version_without_reprobing_host(
+    monkeypatch, nvml_host
+):
     health._get_host_metadata.cache_clear()
-    monkeypatch.setattr(health, "_nvml_driver_supported_cuda_version", lambda: None)
-    monkeypatch.setattr(health, "_run_nvidia_smi", run_nvidia_smi)
     monkeypatch.setattr(health.metadata, "version", lambda _name: "4.2.0")
-    monkeypatch.delitem(sys.modules, "torch", raising=False)
 
     first = health.get_health_metadata()
     monkeypatch.setitem(
@@ -164,12 +185,5 @@ def test_cached_health_refreshes_torch_version_without_reprobing_host(monkeypatc
 
     assert first["hardware"]["cuda"]["torch_build_version"] is None
     assert second["hardware"]["cuda"]["torch_build_version"] == "12.6"
-    assert calls == [
-        ("-q",),
-        (
-            "--query-gpu=name,driver_version,compute_cap",
-            "--format=csv,noheader,nounits",
-        ),
-        ("-L",),
-    ]
+    assert nvml_host == ["init", "shutdown"]
     health._get_host_metadata.cache_clear()

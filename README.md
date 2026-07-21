@@ -60,6 +60,13 @@ Send a request to the server inference endpoint:
 curl --request POST --url http://localhost:8000/inference  --header 'Content-Type: application/json' \
     --data '{"input_1": "Hello"}'
 ```
+
+The `/health` endpoint reports the Maestro worker package version and available
+GPU metadata in addition to `ok`. NVIDIA probing is best-effort, so CPU workers
+return an empty `hardware.gpus` list. MIG instances are counted when visible;
+MPS reports its active-thread percentage when configured, but cannot reliably
+infer the total number of clients.
+
 ### Upload/Download server for development purposes
 In order to avoid using signedurls for uploading/downloading files, you can use the `maestro-upload-server` command. This will start a server in the default `9090` port that will upload/download files in the local `./uploads` folder.
 

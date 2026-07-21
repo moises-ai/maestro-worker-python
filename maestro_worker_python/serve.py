@@ -15,6 +15,7 @@ from starlette.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
+from .health import get_health_metadata
 from .load_worker import load_worker
 from .response import ValidationError, WorkerResponse
 from .kill_process import terminate_current_process, kill_child_processes
@@ -109,7 +110,7 @@ async def index(request: Request):
 
 @app.get("/health")
 async def health(request: Request):
-    return {"ok": True}
+    return {"ok": True, **get_health_metadata()}
 
 
 @app.on_event("shutdown")
@@ -121,6 +122,8 @@ def shutdown_event():
 
 @app.on_event("startup")
 def startup_event():
+    # Prime the cache before readiness probes start hitting /health.
+    get_health_metadata()
     # Create a file to indicate that the server is running
     with open("/tmp/http_ready", "a") as f:
         f.write("Ready to serve")

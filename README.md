@@ -24,8 +24,9 @@ maestro-init
 
 This will create a starter Maestro worker project, including:
   - A `models` folder to include your models
-  - A `docker-compose.yaml`file
-  - A `DockerFile`
+  - A `.gitignore` and `.dockerignore`
+  - A `docker-compose.yaml` file
+  - A `Dockerfile`
   - A `requirements.txt` file including this package
   - A `worker.py` with a worker example
 

@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# IDEs
+.vscode/
+.cursor/
+
+# Models
+models/*
+!models/.gitkeep
+
+# Maestro upload server
+uploads/

@@ -12,10 +12,10 @@ from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
-from importlib.machinery import SourceFileLoader
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
+from .load_worker import load_worker
 from .response import ValidationError, WorkerResponse
 from .kill_process import terminate_current_process, kill_child_processes
 
@@ -57,7 +57,7 @@ if settings.enable_json_logging:
     json_logging.init_request_instrument(app)
     json_logging.config_root_logger()
 
-worker = SourceFileLoader("worker", settings.model_path).load_module()
+worker = load_worker(settings.model_path)
 model = worker.MoisesWorker()
 
 error_counter = 0

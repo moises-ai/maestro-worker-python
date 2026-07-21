@@ -47,6 +47,12 @@ Run the maestro server with the path to your worker. To see all options, use `ma
 maestro-server --worker=./worker.py
 ```
 
+Installed worker adapters can also be loaded by module name:
+
+```bash
+maestro-server --worker=my_package.worker
+```
+
 Send a request to the server inference endpoint:
 
 ```bash

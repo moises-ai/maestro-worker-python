@@ -60,6 +60,21 @@ Send a request to the server inference endpoint:
 curl --request POST --url http://localhost:8000/inference  --header 'Content-Type: application/json' \
     --data '{"input_1": "Hello"}'
 ```
+
+The `/health` endpoint reports the Maestro worker package version and available
+GPU metadata in addition to `ok`. `nvidia_driver_version` is the host driver,
+`driver_supported_version` is the newest CUDA version it supports, and
+`torch_build_version` is the toolkit version used to build an already-imported
+PyTorch. NVIDIA host probing uses NVML and is best-effort, so CPU workers return
+an empty `hardware.gpus` list. Visible MIG partitions report their GPU-instance
+slice count, compute-instance slice count, and memory size. MPS reports its
+configured active-thread percentage and pinned-device-memory limit. These
+client settings can be further constrained by the MPS daemon, so they are not
+presented as effective limits and cannot reliably reveal the total number of
+clients. Once an already-imported PyTorch has initialized CUDA,
+`observed_sm_count` reports the SMs available to its current CUDA device without
+making the health check initialize CUDA itself.
+
 ### Upload/Download server for development purposes
 In order to avoid using signedurls for uploading/downloading files, you can use the `maestro-upload-server` command. This will start a server in the default `9090` port that will upload/download files in the local `./uploads` folder.
 

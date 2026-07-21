@@ -8,7 +8,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--worker", default="./worker.py",
-                        help="Path to the Moises worker file that include a MoisesWorker class")
+                        help="Python file or importable module that contains a MoisesWorker class")
     parser.add_argument("--base_path", default="/",
                         help="DEPRECATED")
     parser.add_argument("--port", default=8000, help="Port to run uvicorn on")

@@ -1,9 +1,11 @@
-from importlib.machinery import SourceFileLoader
 import logging
 import sys
 
+from .load_worker import load_worker
+
+
 def main():
-    worker = SourceFileLoader("worker",sys.argv[1]).load_module()
+    worker = load_worker(sys.argv[1])
     model = worker.MoisesWorker()
     params = {}
     for arg in sys.argv:

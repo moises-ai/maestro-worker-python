@@ -42,11 +42,14 @@ sentry_sdk.init(
 )
 
 
+HTTP_READY_PATH = "/tmp/http_ready"
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # Prime the cache before readiness probes start hitting /health.
     get_health_metadata()
-    with open("/tmp/http_ready", "a") as ready_file:
+    with open(HTTP_READY_PATH, "a") as ready_file:
         ready_file.write("Ready to serve")
 
     try:
@@ -55,7 +58,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         logging.info("Shutting down, bye bye")
         kill_child_processes()
         with suppress(FileNotFoundError):
-            os.remove("/tmp/http_ready")
+            os.remove(HTTP_READY_PATH)
 
 
 app = FastAPI(lifespan=lifespan)

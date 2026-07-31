@@ -74,13 +74,20 @@ curl --request POST --url http://localhost:8000/inference  --header 'Content-Typ
     --data '{"input_1": "Hello"}'
 ```
 
-Workers return a `WorkerResponse` with three fields:
+Workers return a `WorkerResponse`:
 
 - `billable_seconds`: the billable duration as a number of seconds, including
   fractional seconds when available, or `null` when it cannot be determined.
 - `stats`: numeric worker measurements. Use `duration` for total worker
   processing time; additional keys may report individual phases.
 - `result`: the worker-specific JSON object.
+- `internal`: an optional object passed through without inspection, for data the
+  deployment's own response consumer reads and then removes before answering its
+  callers. Its contents are entirely up to that deployment; this library gives it
+  no meaning and does not validate it. Leave it unset if nothing consumes it.
+
+Any other field a worker returns is dropped. `internal` is the one exception, so
+a worker cannot reach a caller with a field nobody agreed to.
 
 The `/health` endpoint reports the worker artifact version supplied through
 `WORKER_VERSION` and available GPU metadata in addition to `ok`. Deployments

@@ -9,10 +9,11 @@ from contextlib import contextmanager
 import requests
 
 from .response import ValidationError
+from .sanitize_url import sanitize_url
 
 
 def download_file(url: str, filename: str | None = None) -> str:
-    logging.info(f"Downloading input: {url}")
+    logging.info("Downloading input: %s", sanitize_url(url))
     response = requests.get(url, allow_redirects=True, timeout=300)
 
     try:
@@ -39,7 +40,7 @@ def download_files_manager(*urls: str) -> Iterator[None | str | list[str]]:
         list_objects = []
         for url in urls:
             filename = tempfile.NamedTemporaryFile()
-            logging.info("Downloading file from url -> %s, filename -> %s", url, filename.name)
+            logging.info("Downloading file from url -> %s, filename -> %s", sanitize_url(url), filename.name)
             with ThreadPoolExecutor(max_workers=20) as exe:
                 thread_list.append(exe.submit(download_file, url, filename.name))
             list_objects.append(filename)

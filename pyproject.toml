@@ -26,6 +26,7 @@ maestro-upload-server = "maestro_worker_python.run_upload_server:main"
 
 [dependency-groups]
 dev = [
+  "httpx2>=2.9.1",
   "pytest>=9.0.3,<10",
   "pytest-httpserver>=1.0.6,<2",
   "ruff>=0.14.9,<0.15",

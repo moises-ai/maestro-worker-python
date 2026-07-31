@@ -35,11 +35,20 @@ def filter_transactions(event, hint):
 
 sentry_sdk.init(
     dsn=settings.sentry_dsn,
+    # Same value /health reports; unset falls back to SENTRY_RELEASE / VCS discovery.
+    release=settings.worker_version,
     traces_sample_rate=settings.sentry_traces_sample_rate,
     sample_rate=settings.sentry_errors_sample_rate,
     environment=settings.environment,
     before_send_transaction=filter_transactions,
 )
+
+if settings.worker_name:
+    # Global scope so the tag survives threadpool work (isolation scope would not).
+    scope = sentry_sdk.get_global_scope()
+    scope.set_tag("worker", settings.worker_name)
+    # Shared family bases share stacktraces; pin grouping to the worker name.
+    scope.fingerprint = ["{{ default }}", settings.worker_name]
 
 
 HTTP_READY_PATH = "/tmp/http_ready"
@@ -117,6 +126,28 @@ async def pydantic_validation_exception_handler(request: Request, exc: pydantic.
     )
 
 
+def _with_worker_identity(result):
+    """Stamp deployment identity onto the worker result.
+
+    Returns a mapping so FastAPI still validates the response model (500 on
+    bad worker output); validating here would turn that into a 400.
+    """
+    identity = {
+        "worker": {
+            "name": settings.worker_name,
+            "version": settings.worker_version,
+        }
+    }
+
+    if isinstance(result, pydantic.BaseModel):
+        return {**result.model_dump(), **identity}
+
+    if isinstance(result, dict):
+        return {**result, **identity}
+
+    return result
+
+
 @app.post("/inference", response_model=WorkerResponse)
 async def inference(request: Request):
     global error_counter
@@ -124,7 +155,7 @@ async def inference(request: Request):
     result = await run_in_threadpool(model.inference, input_data=params)
     async with lock:
         error_counter = 0
-    return result
+    return _with_worker_identity(result)
 
 
 @app.get("/")

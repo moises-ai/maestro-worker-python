@@ -1,12 +1,79 @@
 import asyncio
 import importlib
 import sys
+import threading
 from pathlib import Path
 
 import pytest
+import sentry_sdk
 from fastapi.testclient import TestClient
+from sentry_sdk.transport import Transport
 
 from maestro_worker_python.config import settings
+from maestro_worker_python.health import collect_health_metadata
+from maestro_worker_python.response import WorkerResponse
+
+
+class _RecordingScope:
+    def __init__(self):
+        self.tags: dict[str, str] = {}
+        self.fingerprint = None
+
+    def set_tag(self, key, value):
+        self.tags[key] = value
+
+
+def _capture_sentry(monkeypatch: pytest.MonkeyPatch):
+    """Record what serve.py's import-time Sentry configuration would do."""
+    options: dict = {}
+    scope = _RecordingScope()
+    monkeypatch.setattr(sentry_sdk, "init", lambda **kwargs: options.update(kwargs))
+    monkeypatch.setattr(sentry_sdk, "get_global_scope", lambda: scope)
+    return options, scope
+
+
+class _CapturingTransport(Transport):
+    """Transport subclass rather than a function transport, which is deprecated."""
+
+    def __init__(self, events):
+        super().__init__()
+        self.events = events
+
+    def capture_envelope(self, envelope):
+        for item in envelope.items:
+            event = item.get_event()
+            if event is not None:
+                self.events.append(event)
+
+
+@pytest.fixture
+def sentry_events(monkeypatch: pytest.MonkeyPatch):
+    """Run the real SDK against a capturing transport, not a stubbed init.
+
+    Release, tags, and fingerprint are only meaningful if the SDK actually
+    applies them to an event, which depends on scope semantics a stub cannot
+    reproduce.
+    """
+    events: list[dict] = []
+    real_init = sentry_sdk.init
+
+    def init(**options):
+        # A dsn is required for the client to be active at all; example.invalid is
+        # unresolvable and the capturing transport is what keeps this off the network.
+        options["dsn"] = "https://key@example.invalid/1"
+        transport = _CapturingTransport(events)
+        options["transport"] = transport
+        result = real_init(**options)
+        assert sentry_sdk.get_client().transport is transport, "would send real events"
+        return result
+
+    monkeypatch.setattr(sentry_sdk, "init", init)
+    yield events
+    # The client and the global scope outlive the test; drop both so later tests
+    # neither report into this transport nor inherit its identity.
+    sentry_sdk.get_global_scope().clear()
+    real_init(dsn=None)
+
 
 # Deliberately mixed value types: `internal` is typed only as an object, so
 # coercion of anything inside it would be a silent corruption of a channel this
@@ -123,3 +190,97 @@ def test_inference_distinguishes_an_empty_internal_object_from_no_internal_objec
 
     assert empty["internal"] == {}
     assert unset["internal"] is None
+
+
+def test_sentry_events_carry_the_worker_identity_from_a_worker_thread(tmp_path, monkeypatch, sentry_events):
+    monkeypatch.setattr(settings, "worker_name", "dmx-bass-xl-a")
+    monkeypatch.setattr(settings, "worker_version", "d41d8cd98f00b204")
+    worker_path = tmp_path / "worker.py"
+    worker_path.write_text("class MoisesWorker:\n    pass\n")
+
+    _import_serve(monkeypatch, worker_path)
+
+    # inference() hands the worker body to a threadpool, so the identity has to
+    # survive leaving the request's own scope.
+    def capture_from_thread():
+        try:
+            raise RuntimeError("boom")
+        except RuntimeError:
+            sentry_sdk.capture_exception()
+
+    thread = threading.Thread(target=capture_from_thread)
+    thread.start()
+    thread.join()
+    sentry_sdk.flush()
+
+    (event,) = sentry_events
+    # The release must stay the value /health reports for the same process.
+    assert event["release"] == "d41d8cd98f00b204"
+    assert collect_health_metadata()["worker"]["version"] == "d41d8cd98f00b204"
+    assert event["tags"]["worker"] == "dmx-bass-xl-a"
+    # Grouping is per worker, so one family base cannot collapse the fleet into
+    # a single issue.
+    assert event["fingerprint"] == ["{{ default }}", "dmx-bass-xl-a"]
+
+
+def test_sentry_keeps_its_own_release_discovery_when_identity_is_unset(tmp_path, monkeypatch):
+    options, scope = _capture_sentry(monkeypatch)
+    monkeypatch.setattr(settings, "worker_name", None)
+    monkeypatch.setattr(settings, "worker_version", None)
+    worker_path = tmp_path / "worker.py"
+    worker_path.write_text("class MoisesWorker:\n    pass\n")
+
+    _import_serve(monkeypatch, worker_path)
+
+    assert options["release"] is None
+    assert scope.tags == {}
+    assert scope.fingerprint is None
+
+
+def test_inference_stamps_the_deployment_identity_over_worker_supplied_values(serve_module, monkeypatch):
+    monkeypatch.setattr(settings, "worker_name", "dmx-bass-xl-a")
+    monkeypatch.setattr(settings, "worker_version", "d41d8cd98f00b204")
+
+    # A worker supplying a partial identity has the whole object replaced, not
+    # merged, so a spoofed member cannot survive alongside a stamped one.
+    from_dict = serve_module._with_worker_identity(
+        {"billable_seconds": 1.0, "stats": {}, "result": {"ok": True}, "worker": {"version": "spoofed"}}
+    )
+    from_model = serve_module._with_worker_identity(WorkerResponse(billable_seconds=1.0, stats={}, result={"ok": True}))
+
+    for stamped in (from_dict, from_model):
+        assert stamped["worker"] == {"name": "dmx-bass-xl-a", "version": "d41d8cd98f00b204"}
+        assert stamped["result"] == {"ok": True}
+
+
+def test_inference_leaves_unrecognized_worker_return_shapes_alone(serve_module, monkeypatch):
+    monkeypatch.setattr(settings, "worker_version", "d41d8cd98f00b204")
+
+    assert serve_module._with_worker_identity(None) is None
+
+
+def test_inference_and_health_report_the_identity_over_http(tmp_path, monkeypatch):
+    """The response envelope is a cross-service contract, so pin the wire shape."""
+    monkeypatch.setattr(settings, "worker_name", "dmx-bass-xl-a")
+    monkeypatch.setattr(settings, "worker_version", "d41d8cd98f00b204")
+    worker_path = tmp_path / "worker.py"
+    worker_path.write_text(
+        "class MoisesWorker:\n"
+        "    def inference(self, input_data):\n"
+        "        return {\n"
+        '            "billable_seconds": 2.0,\n'
+        '            "stats": {"duration": 0.5},\n'
+        '            "result": {"echo": input_data},\n'
+        "        }\n"
+    )
+    serve_module = _import_serve(monkeypatch, worker_path)
+    client = TestClient(serve_module.app)
+
+    inference = client.post("/inference", json={"input_url": "gs://bucket/song.mp3"}).json()
+    health = client.get("/health").json()
+
+    assert inference["worker"] == {"name": "dmx-bass-xl-a", "version": "d41d8cd98f00b204"}
+    assert inference["result"] == {"echo": {"input_url": "gs://bucket/song.mp3"}}
+    assert inference["billable_seconds"] == 2.0
+    # Both surfaces read one Settings field each, so they cannot disagree.
+    assert health["worker"] == inference["worker"]

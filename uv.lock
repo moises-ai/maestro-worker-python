@@ -252,7 +252,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.9,<3" },
     { name = "pydantic-settings", specifier = ">=2.9,<3" },
     { name = "requests", specifier = ">=2.31,<3" },
-    { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=1.16,<3" },
+    { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2,<3" },
     { name = "uvicorn", specifier = ">=0.34.0,<0.34.3" },
 ]
 

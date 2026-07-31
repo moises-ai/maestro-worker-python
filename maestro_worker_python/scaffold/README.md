@@ -21,8 +21,10 @@ docker compose build
 docker compose up
 ```
 
-`WORKER_VERSION` identifies the worker artifact in `/health`. Docker Compose
-sets it to `dev`; deployments should set it to the exact image tag.
+`WORKER_NAME` and `WORKER_VERSION` identify the worker in the `worker` object of
+`/health` and inference responses, and in Sentry, where the version is reported
+as the release and the name as the `worker` tag. Docker Compose sets them for
+local runs; deployments should set `WORKER_VERSION` to the exact image tag.
 
 `BASE_IMAGE` must provide a Python interpreter that satisfies the project's
 `requires-python` constraint. Its executable may be named `python`, `python3`,

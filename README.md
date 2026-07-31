@@ -85,13 +85,29 @@ Workers return a `WorkerResponse`:
   deployment's own response consumer reads and then removes before answering its
   callers. Its contents are entirely up to that deployment; this library gives it
   no meaning and does not validate it. Leave it unset if nothing consumes it.
+- `worker`: the deployment identity as `{"name": ..., "version": ...}`, stamped by
+  the server. A worker's own value is replaced wholesale rather than merged, so a
+  caller can trust the object to describe the artifact that actually served the
+  request. Always present; its members are `null` when the deployment supplied
+  nothing.
 
 Any other field a worker returns is dropped. `internal` is the one exception, so
 a worker cannot reach a caller with a field nobody agreed to.
 
-The `/health` endpoint reports the worker artifact version supplied through
-`WORKER_VERSION` and available GPU metadata in addition to `ok`. Deployments
-should set it to the exact worker image tag; it is `null` when unset.
+The `/health` endpoint reports the same `worker` object, supplied through
+`WORKER_NAME` and `WORKER_VERSION`, and available GPU metadata in addition to
+`ok`. Deployments should set `WORKER_VERSION` to the exact worker image tag.
+`/health` and the inference response read the same settings, so they cannot
+report different identities for one process.
+
+That same identity configures Sentry, so a deployment gets attributable events
+without configuring Sentry separately: `WORKER_VERSION` becomes the release —
+keeping every event tied to an artifact that can still be pulled and inspected —
+and `WORKER_NAME` becomes both the `worker` tag and part of the grouping
+fingerprint, so each worker gets its own issues instead of workers built on a
+shared base collapsing into one. With `WORKER_VERSION` unset the SDK falls back
+to its own release discovery.
+
 `nvidia_driver_version` is the host driver,
 `driver_supported_version` is the newest CUDA version it supports, and
 `torch_build_version` is the toolkit version used to build an already-imported

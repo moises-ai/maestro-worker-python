@@ -6,6 +6,7 @@ services:
         - BASE_IMAGE
     command: maestro-server --worker /worker/worker.py --port 8000 --reload True
     environment:
+      WORKER_NAME: local
       WORKER_VERSION: dev
     ports:
       - "8000:8000"

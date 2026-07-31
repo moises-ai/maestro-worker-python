@@ -7,6 +7,8 @@ from typing import Any
 
 import pynvml
 
+from .config import settings
+
 
 def _run_nvidia_smi(*args: str) -> str | None:
     try:
@@ -222,15 +224,13 @@ def _torch_observed_sm_count() -> int | None:
     return sm_count if isinstance(sm_count, int) and sm_count > 0 else None
 
 
-def _worker_version() -> str | None:
-    """Return the worker artifact version supplied by the deployment."""
-    return os.getenv("WORKER_VERSION") or None
-
-
 def _collect_host_metadata() -> dict[str, Any]:
     """Collect stable host metadata without making health depend on a GPU."""
     return {
-        "worker_version": _worker_version(),
+        "worker": {
+            "name": settings.worker_name,
+            "version": settings.worker_version,
+        },
         "hardware": _collect_hardware_metadata(),
     }
 

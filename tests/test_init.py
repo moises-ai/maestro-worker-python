@@ -35,7 +35,7 @@ def test_init_creates_complete_worker_scaffold(tmp_path, monkeypatch):
     dockerfile = (target / "Dockerfile").read_text()
     assert "ARG BASE_IMAGE=python:3.12-slim-trixie" in dockerfile
     assert "FROM ${BASE_IMAGE}" in dockerfile
-    assert "COPY --from=ghcr.io/astral-sh/uv:0.11.25 /uv /uvx /bin/" in dockerfile
+    assert "COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /uvx /bin/" in dockerfile
     assert "UV_LINK_MODE=copy" in dockerfile
     assert "COPY pyproject.toml uv.lock ./" in dockerfile
     assert "--mount=type=cache,target=/root/.cache/uv" in dockerfile

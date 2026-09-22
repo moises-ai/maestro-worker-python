@@ -21,6 +21,7 @@ from .config import settings
 from .health import get_health_metadata
 from .kill_process import kill_child_processes, terminate_current_process
 from .load_worker import load_worker
+from .request_logging import register_client_safe_request_extractor
 from .response import ValidationError, WorkerResponse
 
 
@@ -87,6 +88,7 @@ app.add_middleware(
 logging.basicConfig(level=settings.log_level.upper())
 
 if settings.enable_json_logging:
+    register_client_safe_request_extractor()
     json_logging.init_fastapi(enable_json=True)
     json_logging.init_request_instrument(app)
     json_logging.config_root_logger()

@@ -22,7 +22,7 @@ from .health import get_health_metadata
 from .kill_process import kill_child_processes, terminate_current_process
 from .load_worker import load_worker
 from .request_logging import register_client_safe_request_extractor
-from .response import ValidationError, WorkerResponse
+from .response import FatalWorkerError, ValidationError, WorkerResponse
 
 
 def filter_transactions(event, hint):
@@ -98,14 +98,19 @@ model = worker.MoisesWorker()
 
 error_counter = 0
 lock = asyncio.Lock()
+# Set once a worker raises FatalWorkerError; there is no way back to healthy.
+fatal_error: str | None = None
+
+
+def _error_body(exc: Exception) -> dict:
+    return {"error": "".join(traceback.format_exception(None, exc, exc.__traceback__))}
 
 
 @app.exception_handler(500)
 async def internal_exception_handler(request: Request, exc: Exception):
     global error_counter
-    tb = "".join(traceback.format_exception(None, exc, exc.__traceback__))
     try:
-        return JSONResponse(status_code=500, content=jsonable_encoder({"error": tb}))
+        return JSONResponse(status_code=500, content=jsonable_encoder(_error_body(exc)))
     finally:
         if error_counter > 10:
             logging.error("Too many consecutive errors, shutting down worker")
@@ -113,6 +118,22 @@ async def internal_exception_handler(request: Request, exc: Exception):
 
         async with lock:
             error_counter += 1
+
+
+@app.exception_handler(FatalWorkerError)
+async def fatal_worker_error_handler(request: Request, exc: FatalWorkerError):
+    global fatal_error
+    fatal_error = str(exc)
+    logging.critical("Worker reported a fatal error, shutting down worker: %s", fatal_error)
+    try:
+        return JSONResponse(status_code=500, content=jsonable_encoder(_error_body(exc)))
+    finally:
+        # uvicorn shuts down gracefully, so this response is still delivered.
+        terminate_current_process()
+
+
+def _unavailable() -> JSONResponse:
+    return JSONResponse(status_code=503, content={"ok": False, "error": fatal_error})
 
 
 @app.exception_handler(ValidationError)
@@ -153,6 +174,8 @@ def _with_worker_identity(result):
 @app.post("/inference", response_model=WorkerResponse)
 async def inference(request: Request):
     global error_counter
+    if fatal_error is not None:
+        return _unavailable()
     params = await request.json()
     result = await run_in_threadpool(model.inference, input_data=params)
     async with lock:
@@ -167,4 +190,6 @@ async def index(request: Request):
 
 @app.get("/health")
 async def health(request: Request):
+    if fatal_error is not None:
+        return _unavailable()
     return {"ok": True, **get_health_metadata()}

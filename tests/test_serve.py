@@ -284,3 +284,60 @@ def test_inference_and_health_report_the_identity_over_http(tmp_path, monkeypatc
     assert inference["billable_seconds"] == 2.0
     # Both surfaces read one Settings field each, so they cannot disagree.
     assert health["worker"] == inference["worker"]
+
+
+def _serve_failing_worker(tmp_path, monkeypatch, raised: str):
+    worker_path = tmp_path / "worker.py"
+    worker_path.write_text(
+        "from maestro_worker_python.response import FatalWorkerError, ValidationError\n"
+        "class MoisesWorker:\n"
+        "    calls = 0\n"
+        "    def inference(self, input_data):\n"
+        "        MoisesWorker.calls += 1\n"
+        f"        {raised}\n"
+    )
+    serve_module = _import_serve(monkeypatch, worker_path)
+    terminations: list[bool] = []
+    monkeypatch.setattr(serve_module, "terminate_current_process", lambda: terminations.append(True))
+    client = TestClient(serve_module.app, raise_server_exceptions=False)
+    return serve_module, client, terminations
+
+
+def test_a_fatal_worker_error_fails_the_request_then_stops_the_process_serving(tmp_path, monkeypatch):
+    serve_module, client, terminations = _serve_failing_worker(
+        tmp_path,
+        monkeypatch,
+        'raise FatalWorkerError("CUDA context lost") from RuntimeError("CUDA error: an illegal memory access")',
+    )
+
+    failed = client.post("/inference", json={})
+    assert failed.status_code == 500
+    # The cause is what the job owner needs to debug the fault.
+    assert "an illegal memory access" in failed.json()["error"]
+    assert terminations == [True]
+
+    health = client.get("/health")
+    assert health.status_code == 503
+    assert health.json()["ok"] is False
+
+    refused = client.post("/inference", json={})
+    assert refused.status_code == 503
+    assert serve_module.model.calls == 1
+    assert terminations == [True]
+
+
+@pytest.mark.parametrize(
+    ("raised", "status_code"),
+    [
+        pytest.param('raise RuntimeError("shape mismatch")', 500, id="ordinary-failure"),
+        pytest.param('raise ValidationError("input is too big")', 400, id="validation-error"),
+    ],
+)
+def test_a_recoverable_failure_keeps_the_process_serving(tmp_path, monkeypatch, raised, status_code):
+    serve_module, client, terminations = _serve_failing_worker(tmp_path, monkeypatch, raised)
+
+    assert client.post("/inference", json={}).status_code == status_code
+    assert client.get("/health").status_code == 200
+    assert client.post("/inference", json={}).status_code == status_code
+    assert serve_module.model.calls == 2
+    assert terminations == []

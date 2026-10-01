@@ -94,6 +94,13 @@ Workers return a `WorkerResponse`:
 Any other field a worker returns is dropped. `internal` is the one exception, so
 a worker cannot reach a caller with a field nobody agreed to.
 
+A worker raises `ValidationError` for a bad request (400) and
+`FatalWorkerError` when the process itself can no longer serve, such as after a
+CUDA error that poisons the context. A fatal error still fails its own request
+with 500, then `/health` and `/inference` answer 503 and the server exits, so
+the orchestrator restarts the container instead of routing more jobs to it.
+Raise it `from` the original error: the response carries the whole chain.
+
 The `/health` endpoint reports the same `worker` object, supplied through
 `WORKER_NAME` and `WORKER_VERSION`, and available GPU metadata in addition to
 `ok`. Deployments should set `WORKER_VERSION` to the exact worker image tag.

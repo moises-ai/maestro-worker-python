@@ -23,3 +23,7 @@ class WorkerResponse(BaseModel):
 class ValidationError(Exception):
     def __init__(self, reason):
         self.reason = reason
+
+
+class FatalWorkerError(Exception):
+    """This process can no longer serve; raise it from the error that broke it."""

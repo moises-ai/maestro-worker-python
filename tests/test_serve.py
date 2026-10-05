@@ -1,5 +1,7 @@
 import asyncio
 import importlib
+import json
+import subprocess
 import sys
 import threading
 from pathlib import Path
@@ -341,3 +343,36 @@ def test_a_recoverable_failure_keeps_the_process_serving(tmp_path, monkeypatch, 
     assert client.post("/inference", json={}).status_code == status_code
     assert serve_module.model.calls == 2
     assert terminations == []
+
+
+def _start_with_json_logging(tmp_path, then: str = "") -> subprocess.CompletedProcess:
+    """Import serve.py in a fresh interpreter: json_logging configures process-wide state once."""
+    worker_path = tmp_path / "worker.py"
+    worker_path.write_text("class MoisesWorker:\n    pass\n")
+    return subprocess.run(
+        [sys.executable, "-c", f"from maestro_worker_python import serve\n{then}"],
+        capture_output=True,
+        text=True,
+        env={"ENABLE_JSON_LOGGING": "true", "MODEL_PATH": str(worker_path)},
+    )
+
+
+def _log_lines(result: subprocess.CompletedProcess) -> list[str]:
+    return [line for line in (result.stdout + result.stderr).splitlines() if line.strip()]
+
+
+def test_json_logging_startup_writes_only_json(tmp_path):
+    # Cloud Logging files any non-JSON stderr line as ERROR.
+    result = _start_with_json_logging(tmp_path)
+
+    assert result.returncode == 0, result.stderr
+    for line in _log_lines(result):
+        json.loads(line)
+
+
+def test_json_logging_keeps_reporting_its_own_warnings(tmp_path):
+    result = _start_with_json_logging(tmp_path, 'import logging; logging.getLogger("json_logging").warning("probe")')
+
+    assert result.returncode == 0, result.stderr
+    records = [json.loads(line) for line in _log_lines(result) if line.startswith("{")]
+    assert any(r["msg"] == "probe" and r["level"] == "WARNING" for r in records), records

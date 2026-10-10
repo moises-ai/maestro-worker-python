@@ -144,11 +144,23 @@ async def validation_error_handler(request: Request, exc: ValidationError):
     return JSONResponse(status_code=400, content=jsonable_encoder({"error": exc.reason}))
 
 
+def _describe_validation_errors(errors: list) -> str:
+    """One line a caller can read, e.g. ``stems: Input should be a valid integer; outputs.midi: Field required``."""
+    described = []
+    for error in errors:
+        # A model-level validator reports an empty location.
+        field = ".".join(str(part) for part in error["loc"]) or "request"
+        described.append(f"{field}: {error['msg']}")
+    return "; ".join(described)
+
+
 @app.exception_handler(pydantic.ValidationError)
 async def pydantic_validation_exception_handler(request: Request, exc: pydantic.ValidationError):
+    errors = exc.errors()
+    # `error` carries the reason a caller reads, as it does for ValidationError.
     return JSONResponse(
         status_code=400,
-        content=jsonable_encoder({"detail": exc.errors()}),
+        content=jsonable_encoder({"error": _describe_validation_errors(errors), "detail": errors}),
     )
 
 

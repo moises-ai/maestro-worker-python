@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10, <3.14"
 
 [[package]]
@@ -220,7 +220,7 @@ wheels = [
 
 [[package]]
 name = "maestro-worker-python"
-version = "5.2.1"
+version = "5.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },

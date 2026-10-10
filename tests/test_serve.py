@@ -345,6 +345,20 @@ def test_a_recoverable_failure_keeps_the_process_serving(tmp_path, monkeypatch, 
     assert terminations == []
 
 
+def test_an_invalid_request_is_refused_with_a_reason_naming_the_field(tmp_path, monkeypatch):
+    _, client, _ = _serve_failing_worker(
+        tmp_path,
+        monkeypatch,
+        "import pydantic; type('Request', (pydantic.BaseModel,), {'__annotations__': {'stems': int}})(stems='x')",
+    )
+
+    refused = client.post("/inference", json={})
+
+    assert refused.status_code == 400
+    assert refused.json()["error"].startswith("stems: ")
+    assert refused.json()["detail"][0]["loc"] == ["stems"]
+
+
 def _start_with_json_logging(tmp_path, then: str = "") -> subprocess.CompletedProcess:
     """Import serve.py in a fresh interpreter: json_logging configures process-wide state once."""
     worker_path = tmp_path / "worker.py"

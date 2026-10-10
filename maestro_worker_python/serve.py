@@ -146,9 +146,12 @@ async def validation_error_handler(request: Request, exc: ValidationError):
 
 @app.exception_handler(pydantic.ValidationError)
 async def pydantic_validation_exception_handler(request: Request, exc: pydantic.ValidationError):
+    # `error` carries the reason a caller reads, as it does for ValidationError.
+    errors = exc.errors()
+    reason = "; ".join(f"{'.'.join(map(str, error['loc'])) or 'request'}: {error['msg']}" for error in errors)
     return JSONResponse(
         status_code=400,
-        content=jsonable_encoder({"detail": exc.errors()}),
+        content=jsonable_encoder({"error": reason, "detail": errors}),
     )
 
 

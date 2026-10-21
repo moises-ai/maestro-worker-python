@@ -390,3 +390,34 @@ def test_json_logging_keeps_reporting_its_own_warnings(tmp_path):
     assert result.returncode == 0, result.stderr
     records = [json.loads(line) for line in _log_lines(result) if line.startswith("{")]
     assert any(r["msg"] == "probe" and r["level"] == "WARNING" for r in records), records
+
+
+SERVE_A_REQUEST_WITHOUT_A_PEER = """
+import asyncio, sys
+
+scope = {
+    "type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "scheme": "http",
+    "method": "GET", "path": "/health", "raw_path": b"/health", "query_string": b"",
+    "root_path": "", "headers": [], "client": None, "server": ("testserver", 80),
+}
+
+async def receive():
+    return {"type": "http.request", "body": b"", "more_body": False}
+
+messages = []
+
+async def send(message):
+    messages.append(message)
+
+asyncio.run(serve.app(scope, receive, send))
+print([m["status"] for m in messages if m["type"] == "http.response.start"], file=sys.stderr)
+"""
+
+
+def test_json_logging_serves_a_request_without_a_peer_cleanly(tmp_path):
+    # A kubelet resetting a timed-out readiness probe leaves Request.client as None.
+    result = _start_with_json_logging(tmp_path, SERVE_A_REQUEST_WITHOUT_A_PEER)
+
+    assert result.returncode == 0, result.stderr
+    assert "[200]" in result.stderr
+    assert "Logging error" not in result.stderr, result.stderr

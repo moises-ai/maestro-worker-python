@@ -21,7 +21,6 @@ from .config import settings
 from .health import get_health_metadata
 from .kill_process import kill_child_processes, terminate_current_process
 from .load_worker import load_worker
-from .request_logging import register_client_safe_request_extractor
 from .response import FatalWorkerError, ValidationError, WorkerResponse
 
 
@@ -88,7 +87,6 @@ app.add_middleware(
 logging.basicConfig(level=settings.log_level.upper())
 
 if settings.enable_json_logging:
-    register_client_safe_request_extractor()
     # json_logging pins its own logger to DEBUG at import, and init logs at DEBUG before
     # the root handler is JSON, leaking a plain-text line that Cloud Logging files as ERROR.
     logging.getLogger("json_logging").setLevel(logging.INFO)

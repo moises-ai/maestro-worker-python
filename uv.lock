@@ -211,11 +211,11 @@ wheels = [
 
 [[package]]
 name = "json-logging"
-version = "1.5.1"
+version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/74/cc/6bef021352f8a4d4e1b0ab4216f65ed313f66b0adaf279e8ff08ea03ad68/json-logging-1.5.1.tar.gz", hash = "sha256:7c938750996a1cc66042b516caf75214513bcc25a105012865496864f5f3983b", size = 26072, upload-time = "2025-07-07T07:09:45.397Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/67/1c37cff6d305dc2472cdc18109f4cac7358d47c58caa7c7d410bbeb8a75f/json_logging-1.6.0.tar.gz", hash = "sha256:d708f7ce02fea741b9f41b61fc8e9fdcb14a86092f2ff53061cdb07e1e11241a", size = 47342, upload-time = "2026-10-21T20:27:13.445Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/76/6c/4a74f61a66b1360425339f5fd57178c47f44e8a38a214ae3d4104f9fc19e/json_logging-1.5.1-py2.py3-none-any.whl", hash = "sha256:df39ee1e6709c46830654e96a769894832061207c653c851baeacf655bff596d", size = 23689, upload-time = "2025-07-07T07:09:44.505Z" },
+    { url = "https://files.pythonhosted.org/packages/34/d1/9a6cc57d796aad69b8d36d3205c944f1458403fdec37c3ffe5f944225a5e/json_logging-1.6.0-py2.py3-none-any.whl", hash = "sha256:d9201ffa11dc90a67d33e52add828acf2e97c6359678785907d038c71db6eb6b", size = 26238, upload-time = "2026-10-21T20:27:12.484Z" },
 ]
 
 [[package]]
@@ -246,7 +246,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.139.2,<0.140" },
-    { name = "json-logging", specifier = ">=1.3,<2" },
+    { name = "json-logging", specifier = ">=1.6,<2" },
     { name = "nvidia-ml-py", specifier = ">=12.535,<14" },
     { name = "psutil", specifier = ">=6.0.0,<7.1" },
     { name = "pydantic", specifier = ">=2.9,<3" },

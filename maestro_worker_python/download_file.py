@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 
@@ -34,7 +34,7 @@ def download_file(url: str, filename: str | None = None) -> str:
 
 
 @contextmanager
-def download_files_manager(*urls: str) -> Iterator[None | str | list[str]]:
+def download_files_manager(*urls: str) -> Generator[None | str | list[str]]:
     try:
         thread_list = []
         list_objects = []

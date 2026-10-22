@@ -174,8 +174,12 @@ file_name = download_file("https://url_to_download_file")
 from maestro_worker_python.upload_files import upload_files, UploadFile
 
 files_to_upload = []
-files_to_upload.append(UploadFile(file_path="test_upload1.txt", file_type="text/plain", signed_url="https://httpbin.org/put"))
-files_to_upload.append(UploadFile(file_path="test_upload2.txt", file_type="text/plain", signed_url="https://httpbin.org/put"))
+files_to_upload.append(
+    UploadFile(file_path="test_upload1.txt", file_type="text/plain", signed_url="https://httpbin.org/put")
+)
+files_to_upload.append(
+    UploadFile(file_path="test_upload2.txt", file_type="text/plain", signed_url="https://httpbin.org/put")
+)
 upload_files(files_to_upload)
 ```
 
@@ -184,15 +188,20 @@ upload_files(files_to_upload)
 from maestro_worker_python.convert_files import convert_files, FileToConvert
 
 files_to_convert = []
-files_to_convert.append(FileToConvert(input_file_path="input.mp3", output_file_path="output.wav", file_format="wav", max_duration=1200))
-files_to_convert.append(FileToConvert(input_file_path="input.mp3", output_file_path="output.m4a", file_format="m4a", max_duration=1200))
+files_to_convert.append(
+    FileToConvert(input_file_path="input.mp3", output_file_path="output.wav", file_format="wav", max_duration=1200)
+)
+files_to_convert.append(
+    FileToConvert(input_file_path="input.mp3", output_file_path="output.m4a", file_format="m4a", max_duration=1200)
+)
 convert_files(files_to_convert)
 ```
 
 ### Get file duration in seconds
 ```python
 from maestro_worker_python.get_duration import get_duration
-get_duration('./myfile.mp3')
+
+get_duration("./myfile.mp3")
 ```
 
 The returned `float` preserves fractional seconds reported by `ffprobe`.

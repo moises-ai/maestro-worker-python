@@ -4,7 +4,7 @@ import logging
 import os
 import socket
 import traceback
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 from urllib.parse import urlparse
 
@@ -55,7 +55,7 @@ HTTP_READY_PATH = "/tmp/http_ready"
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     # Prime the cache before readiness probes start hitting /health.
     get_health_metadata()
     with open(HTTP_READY_PATH, "a") as ready_file:
@@ -75,8 +75,7 @@ app = FastAPI(lifespan=lifespan)
 origins = ["*"]
 
 app.add_middleware(
-    # ty does not yet model Starlette's class-based middleware factory protocol.
-    CORSMiddleware,  # ty: ignore[invalid-argument-type]
+    CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],

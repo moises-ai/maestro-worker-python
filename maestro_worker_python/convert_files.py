@@ -4,7 +4,7 @@ import concurrent.futures
 import logging
 import subprocess
 import tempfile
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from os import PathLike
@@ -58,7 +58,7 @@ def convert_files(convert_files: list[FileToConvert]) -> None:
 
 
 @contextmanager
-def convert_files_manager(*convert_files: FileToConvert) -> Iterator[None | str | list[str]]:
+def convert_files_manager(*convert_files: FileToConvert) -> Generator[None | str | list[str]]:
     try:
         thread_list = []
         list_objects = []

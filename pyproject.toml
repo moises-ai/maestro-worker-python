@@ -7,15 +7,15 @@ requires-python = ">=3.10,<3.14"
 license = "MIT"
 authors = [{ name = "Moises.ai" }]
 dependencies = [
-  "fastapi>=0.139.2,<0.140",
+  "fastapi>=0.139.2,<1",
   "json-logging>=1.6,<2",
   "nvidia-ml-py>=12.535,<14",
-  "psutil>=6.0.0,<7.1",
+  "psutil>=6.0.0,<8",
   "pydantic>=2.9,<3",
   "pydantic-settings>=2.9,<3",
   "requests>=2.31,<3",
   "sentry-sdk[fastapi]>=2,<3",
-  "uvicorn>=0.34.0,<0.34.3",
+  "uvicorn>=0.34.0,<1",
 ]
 
 [project.scripts]
@@ -29,12 +29,12 @@ dev = [
   "httpx2>=2.9.1",
   "pytest>=9.0.3,<10",
   "pytest-httpserver>=1.0.6,<2",
-  "ruff>=0.14.9,<0.15",
-  "ty==0.0.14",
+  "ruff>=0.17,<0.18",
+  "ty==0.0.90",
 ]
 
 [build-system]
-requires = ["uv_build>=0.11.25,<0.13"]
+requires = ["uv_build>=0.11.25,<0.14"]
 build-backend = "uv_build"
 
 [tool.ruff]

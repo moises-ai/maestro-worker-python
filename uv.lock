@@ -309,7 +309,7 @@ wheels = [
 
 [[package]]
 name = "maestro-worker-python"
-version = "5.2.2"
+version = "5.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
